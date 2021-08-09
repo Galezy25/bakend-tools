@@ -6,22 +6,22 @@ import {
     PrimaryKey,
 } from '../../src/easysql/constraint';
 
-const mockQuery = jest.fn((__query, callback : (err: any, results: any, fields: any) => void) => {
-   callback(undefined,[],[]);
-});
-jest.mock('mysql', ()=> {
-    return  {
-        createConnection: jest.fn((_config) => ({
+const mockQuery = jest.fn(
+    (__query, callback: (err: any, results: any, fields: any) => void) => {
+        callback(undefined, [], []);
+    }
+);
+jest.mock('mysql', () => {
+    return {
+        createConnection: jest.fn(_config => ({
             query: mockQuery,
             end: jest.fn(),
         })),
-        escape: jest.fn((value: any)=>{
-            return typeof value === 'string'
-                ? `'${value}'`
-                : value + ''
-        })
-    }
-})
+        escape: jest.fn((value: any) => {
+            return typeof value === 'string' ? `'${value}'` : value + '';
+        }),
+    };
+});
 
 describe('Connection tests', () => {
     let connection = new Connection({
@@ -100,16 +100,16 @@ describe('Connection tests', () => {
             ...constraints
         );
         expect(table.name).toBe(tableTestsName);
-        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
     });
 
     test('Find, Find One of a empty table', async () => {
         await table.find({});
-        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
         await expect(table.findOne({ id: 1 })).rejects.toMatchObject({
             code: 404,
         });
-        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot();
     });
 
     test('Add, modify and drop column', async () => {
@@ -118,15 +118,15 @@ describe('Connection tests', () => {
                 dataType: 'BIGINT',
             })
         );
-        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
         await table.modifyColumn(
             new Column('phone', {
                 dataType: ['VARCHAR', 17],
             })
         );
-        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot();
         await table.dropColumn('phone');
-        expect(mockQuery.mock.calls[2][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[2][0]).toMatchSnapshot();
     });
 
     test('Create rows', async () => {
@@ -134,7 +134,7 @@ describe('Connection tests', () => {
             name: 'test_1',
             email: 'test_1@test.test',
         });
-        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
 
         let toRegister: any[] = [];
         for (let index = 2; index <= 200; index++) {
@@ -146,34 +146,36 @@ describe('Connection tests', () => {
             });
         }
         await table.create(toRegister, ['name', 'email', 'leader']);
-        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot();
     });
 
     test('Find rows', async () => {
-        await table.find({
-            _sort: 'id:DESC',
-            _limit: 25,
-            _start: 25,
-            leader_gteq: 8,
-            [tableTestsName + '_inner']: tableTestsName + '.id:this.leader',
-        }, ['this.*', tableTestsName + '.name AS leader_name']);
-        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
+        await table.find(
+            {
+                _sort: 'id:DESC',
+                _limit: 25,
+                _start: 25,
+                leader_gteq: 8,
+                [tableTestsName + '_inner']: tableTestsName + '.id:this.leader',
+            },
+            ['this.*', tableTestsName + '.name AS leader_name']
+        );
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
 
         await table.find({
             email_like: 'test_2%',
             leader_in: '2,5',
         });
-        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot();
     });
 
     test('Update row', async () => {
         await table.update({ name: 'test_100_2' }, { id: 100 });
-        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
     });
 
     test('Delete row', async () => {
         await table.delete({ id: 100 });
-        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
     });
-
 });
