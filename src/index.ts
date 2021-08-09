@@ -4,10 +4,4 @@ import SimpleToken from './simpletoken';
 import ErrorHandler from './error.handler';
 import FileApi from './file.api';
 
-export {
-    EasySQL,
-    AdminFile,
-    SimpleToken,
-    ErrorHandler,
-    FileApi
-}
+export { EasySQL, AdminFile, SimpleToken, ErrorHandler, FileApi };

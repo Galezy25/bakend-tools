@@ -1,9 +1,9 @@
-import { ColumnDefinition, columnDefToString, DataType } from "./const.types";
+import { ColumnDefinition, columnDefToString, DataType } from './const.types';
 
 export default class Column {
     protected _name: string;
     protected _definition: ColumnDefinition;
-    private _order?: "FIRST" | string;
+    private _order?: 'FIRST' | string;
 
     /**
      * How is named this column.
@@ -20,12 +20,17 @@ export default class Column {
     }
 
     /**
-     * 
+     *
      * @returns This column into a string
      */
     public toString() {
-        return this.name + " " + columnDefToString(this._definition) + this.orderString()
-    };
+        return (
+            this.name +
+            ' ' +
+            columnDefToString(this._definition) +
+            this.orderString()
+        );
+    }
 
     constructor(name: string, definition: ColumnDefinition) {
         this._name = name;
@@ -40,7 +45,7 @@ export default class Column {
     }
 
     /**
-     * 
+     *
      * @param changes Column definition with the values to update.
      * @returns This object.
      */
@@ -50,19 +55,22 @@ export default class Column {
     }
 
     /**
-     * 
+     *
      * @param newName How will be named this column.
      * @param definitionChanges Column definition with the values to update.
      * @returns This object.
      */
-    public change(newName: string, definitionChanges: ColumnDefinition & { dataType?: DataType }) {
+    public change(
+        newName: string,
+        definitionChanges: ColumnDefinition & { dataType?: DataType }
+    ) {
         this.rename(newName);
         this.modify(definitionChanges);
         return this;
     }
 
     /**
-     * 
+     *
      * @param newName How will be named this column.
      * @returns This object.
      */
@@ -76,24 +84,25 @@ export default class Column {
      * @param columnName Name of the column that will be before this column.
      * @returns This object.
      */
-    public setAfter(columnName: string){
+    public setAfter(columnName: string) {
         this._order = columnName;
         return this;
     }
 
     /**
      * Set this column at the first place of the table.
-     * @returns 
+     * @returns
      */
-    public setFirst(){
+    public setFirst() {
         this._order = 'FIRST';
         return this;
     }
 
-    private orderString(){
-        return this._order ?
-        this._order === "FIRST" ? " FIRST" :
-            ' AFTER ' + this._order
-        : '';
+    private orderString() {
+        return this._order
+            ? this._order === 'FIRST'
+                ? ' FIRST'
+                : ' AFTER ' + this._order
+            : '';
     }
 }

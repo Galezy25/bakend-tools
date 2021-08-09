@@ -5,7 +5,7 @@ export default class ErrorHandler {
     private _pathLog: string;
 
     /**
-     * 
+     *
      * @param pathLog Path of the log that will be append the errors.
      */
     constructor(pathLog: string) {
@@ -16,26 +16,25 @@ export default class ErrorHandler {
 
     /**
      * Error handler, this should be used after all routes of the Express server.
-     * 
+     *
      * @example
      * ```ts
      *      expressApp.use(errorHandler.handler)
-     * ``` 
+     * ```
      */
     handler(err: any, req: Request, res: Response, _next: any) {
         let toLog = false;
         let code: number | null = null;
-        if (typeof err === "number") code = err;
-        if (typeof (err.code) === 'number') code = err.code;
-        if (typeof (err.status) === 'number') code = err.status;
-        if (typeof (err.statusCode) === 'number') code = err.statusCode;
+        if (typeof err === 'number') code = err;
+        if (typeof err.code === 'number') code = err.code;
+        if (typeof err.status === 'number') code = err.status;
+        if (typeof err.statusCode === 'number') code = err.statusCode;
 
         if (code) {
             if (code >= 500) {
                 toLog = true;
             }
             res.sendStatus(code);
-
         } else {
             toLog = true;
             res.sendStatus(500);
@@ -56,30 +55,29 @@ export default class ErrorHandler {
      * @returns Promise
      */
     appendError(err: any, service: any) {
-        return new Promise<void>((resolve, reject)=>{
+        return new Promise<void>((resolve, reject) => {
             let now = new Date();
-            let content = "<----------------------------| \n";
-            content += service + "\n";
-            content += now + "\n\n";
-            content += err.toString() + "\n";
-            content += JSON.stringify(err) + "\n";
-            content += "|----------------------------> \n";
-            fs.appendFile(this._pathLog, content, (err) => {
+            let content = '<----------------------------| \n';
+            content += service + '\n';
+            content += now + '\n\n';
+            content += err.toString() + '\n';
+            content += JSON.stringify(err) + '\n';
+            content += '|----------------------------> \n';
+            fs.appendFile(this._pathLog, content, err => {
                 if (err) {
                     reject(err);
-                }else{
-                    resolve()
+                } else {
+                    resolve();
                 }
-            })
-
-        })
+            });
+        });
     }
 
     /**
      * Set the error log as empty.
      */
     async restartErrorLog() {
-        fs.writeFile(this._pathLog, '', (err) => {
+        fs.writeFile(this._pathLog, '', err => {
             if (err) {
                 throw err;
             }
@@ -87,7 +85,7 @@ export default class ErrorHandler {
     }
 
     /**
-     * 
+     *
      * @returns Promise that resolves with the content of the error log.
      */
     getErrorLog() {
@@ -95,9 +93,8 @@ export default class ErrorHandler {
             fs.readFile(this._pathLog, 'utf8', (err, data) => {
                 if (err) reject(err);
                 else resolve(data);
-            })
-
-        })
+            });
+        });
     }
 }
 
@@ -108,16 +105,19 @@ export class ErrorHTTP extends Error {
     statusCode: number = 500;
     error: any;
 
-    constructor(message: string, error?: {
-        [index : string] : any,
-        statusCode ?: number
-    }){
+    constructor(
+        message: string,
+        error?: {
+            [index: string]: any;
+            statusCode?: number;
+        }
+    ) {
         super(message);
-        if(error?.statusCode) this.statusCode = error.statusCode;
+        if (error?.statusCode) this.statusCode = error.statusCode;
         this.error = error;
     }
 
-    toString(){
-        return `Status code: ${ this.statusCode }: ${ this.message }` 
+    toString() {
+        return `Status code: ${this.statusCode}: ${this.message}`;
     }
 }

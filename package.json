@@ -28,7 +28,8 @@
     "printWidth": 80,
     "semi": true,
     "singleQuote": true,
-    "trailingComma": "es5"
+    "trailingComma": "es5",
+    "tabWidth": 4
   },
   "name": "backend-tools",
   "author": "Galezy Napoles García",

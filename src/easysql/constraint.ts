@@ -1,4 +1,8 @@
-import { ReferenceDefinition, referenceDefToString, ReferenceOption } from "./const.types";
+import {
+    ReferenceDefinition,
+    referenceDefToString,
+    ReferenceOption,
+} from './const.types';
 
 export interface Constraint {
     readonly name?: string;
@@ -25,7 +29,7 @@ export class PrimaryKey extends ConstraintBase {
         this.col_name = col_name;
     }
     toString() {
-        return super.toString() + ` PRIMARY KEY (${this.col_name})`
+        return super.toString() + ` PRIMARY KEY (${this.col_name})`;
     }
 }
 
@@ -39,7 +43,7 @@ export class Unique extends ConstraintBase {
         this.col_name = col_name;
     }
     toString() {
-        return super.toString() + ` UNIQUE (${this.col_name})`
+        return super.toString() + ` UNIQUE (${this.col_name})`;
     }
 }
 
@@ -51,8 +55,8 @@ export class ForeignKey extends ConstraintBase implements ReferenceDefinition {
     readonly tableRef: string;
     readonly columnRef: string;
     readonly referenceOption?: {
-        onUpdate?: ReferenceOption,
-        onDelete?: ReferenceOption
+        onUpdate?: ReferenceOption;
+        onDelete?: ReferenceOption;
     };
 
     constructor({
@@ -60,25 +64,27 @@ export class ForeignKey extends ConstraintBase implements ReferenceDefinition {
         colName,
         tableRef,
         columnRef,
-        referenceOption
+        referenceOption,
     }: {
-        constraint_name?: string,
-        colName: string
+        constraint_name?: string;
+        colName: string;
     } & ReferenceDefinition) {
         super(constraint_name);
         this.colName = colName;
         this.tableRef = tableRef;
         this.columnRef = columnRef;
         this.referenceOption = referenceOption;
-
     }
     toString() {
-        return super.toString() + ` FOREIGN KEY (${this.colName}) ${referenceDefToString(this)}`;
+        return (
+            super.toString() +
+            ` FOREIGN KEY (${this.colName}) ${referenceDefToString(this)}`
+        );
     }
 }
 
 export default {
     PrimaryKey,
     Unique,
-    ForeignKey
-}
+    ForeignKey,
+};
