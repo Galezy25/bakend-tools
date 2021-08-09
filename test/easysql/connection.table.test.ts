@@ -6,12 +6,34 @@ import {
     PrimaryKey,
 } from '../../src/easysql/constraint';
 
+const mockQuery = jest.fn((__query, callback : (err: any, results: any, fields: any) => void) => {
+   callback(undefined,[],[]);
+});
+jest.mock('mysql', ()=> {
+    return  {
+        createConnection: jest.fn((_config) => ({
+            query: mockQuery,
+            end: jest.fn(),
+        })),
+        escape: jest.fn((value: any)=>{
+            return typeof value === 'string'
+                ? `'${value}'`
+                : value + ''
+        })
+    }
+})
+
 describe('Connection tests', () => {
     let connection = new Connection({
         user: 'root',
     });
 
-    const tableTestsName = 'table_tests_' + Date.now().toString(36);
+    const tableTestsName = 'table_tests';
+    const table = connection.table(tableTestsName);
+
+    beforeEach(() => {
+        mockQuery.mockClear();
+    });
 
     afterAll(() => {
         connection.query('DROP TABLE ' + tableTestsName);
@@ -38,12 +60,6 @@ describe('Connection tests', () => {
                 num: undefined,
             })
         ).toBe("this is a test named 'SELECT * FROM users' DEFAULT");
-    });
-
-    test('Create Test database', async () => {
-        await expect(connection.query('CREATE DATABASE IF NOT EXISTS test'))
-            .resolves;
-        await connection.query('USE test');
     });
 
     test('Create table', async () => {
@@ -83,66 +99,42 @@ describe('Connection tests', () => {
             ...columns,
             ...constraints
         );
-
         expect(table.name).toBe(tableTestsName);
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
     });
 
     test('Find, Find One of a empty table', async () => {
-        const table = connection.table(tableTestsName);
-        const allRow = await table.find({});
-        expect(allRow.length).toBe(0);
+        await table.find({});
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
         await expect(table.findOne({ id: 1 })).rejects.toMatchObject({
             code: 404,
         });
+        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot()
     });
 
     test('Add, modify and drop column', async () => {
-        const table = connection.table(tableTestsName);
-        let columns: {
-            Field: string;
-            Type: string;
-            Null: string;
-            Key: string;
-            Default: string;
-            Extra: string;
-        }[];
-
-        await expect(
-            table.addColumn(
-                new Column('phone', {
-                    dataType: 'BIGINT',
-                })
-            )
-        ).resolves;
-        columns = await connection.query('SHOW COLUMNS FROM ' + tableTestsName);
-        expect(columns.find(column => column.Field === 'phone')).toBeDefined();
-
-        await expect(
-            table.modifyColumn(
-                new Column('phone', {
-                    dataType: ['VARCHAR', 17],
-                })
-            )
+        await table.addColumn(
+            new Column('phone', {
+                dataType: 'BIGINT',
+            })
         );
-        columns = await connection.query('SHOW COLUMNS FROM ' + tableTestsName);
-        expect(columns.find(column => column.Field === 'phone')?.Type).toBe(
-            'varchar(17)'
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
+        await table.modifyColumn(
+            new Column('phone', {
+                dataType: ['VARCHAR', 17],
+            })
         );
-
-        await expect(table.dropColumn('phone'));
-        columns = await connection.query('SHOW COLUMNS FROM ' + tableTestsName);
-        expect(
-            columns.find(column => column.Field === 'phone')
-        ).not.toBeDefined();
+        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot()
+        await table.dropColumn('phone');
+        expect(mockQuery.mock.calls[2][0]).toMatchSnapshot()
     });
 
     test('Create rows', async () => {
-        const table = connection.table(tableTestsName);
-        const insertedId = await table.create({
+        await table.create({
             name: 'test_1',
             email: 'test_1@test.test',
         });
-        expect(insertedId.insertId).toBe(1);
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
 
         let toRegister: any[] = [];
         for (let index = 2; index <= 200; index++) {
@@ -153,89 +145,35 @@ describe('Connection tests', () => {
                 otherValue: index,
             });
         }
-        await expect(table.create(toRegister, ['name', 'email', 'leader']))
-            .resolves;
+        await table.create(toRegister, ['name', 'email', 'leader']);
+        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot()
     });
 
     test('Find rows', async () => {
-        const table = connection.table(tableTestsName);
-        let results: {
-            id: number;
-            name: string;
-            email: string;
-            leader: number;
-        }[];
-
-        results = await table.find({
+        await table.find({
             _sort: 'id:DESC',
             _limit: 25,
             _start: 25,
-        });
+            leader_gteq: 8,
+            [tableTestsName + '_inner']: tableTestsName + '.id:this.leader',
+        }, ['this.*', tableTestsName + '.name AS leader_name']);
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
 
-        expect(results.length).toBe(25);
-        expect(results[0].id).toBe(175);
-
-        results = await table.find({
+        await table.find({
+            email_like: 'test_2%',
             leader_in: '2,5',
         });
-        expect(results.length).toBe(38);
-
-        results = await table.find({
-            email_like: 'test_2%',
-        });
-        expect(results.length).toBe(12);
-
-        results = await table.find({
-            leader_gteq: 8,
-        });
-        expect(results.length).toBe(38);
-
-        results = await table.find({
-            leader: 5,
-        });
-        expect(results.length).toBe(19);
-    });
-
-    test('Find one with join', async () => {
-        const table = connection.table(tableTestsName);
-        let result: {
-            id: number;
-            name: string;
-            email: string;
-            leader: number;
-            active: boolean;
-            leader_name: string;
-        } = await table.findOne(
-            {
-                'this.id': 100,
-                [tableTestsName + '_inner']: tableTestsName + '.id:this.leader',
-            },
-            ['this.*', tableTestsName + '.name AS leader_name']
-        );
-        expect(result.leader_name).toBe('test_1');
+        expect(mockQuery.mock.calls[1][0]).toMatchSnapshot()
     });
 
     test('Update row', async () => {
-        const table = connection.table(tableTestsName);
-        let result: {
-            id: number;
-            name: string;
-            email: string;
-            leader: number;
-        } = await table.findOne({ id: 100 });
-        let prevResult = result;
-        expect(result.name).toBe('test_100');
         await table.update({ name: 'test_100_2' }, { id: 100 });
-        result = await table.findOne({ id: 100 });
-        expect(result).toMatchObject({ ...prevResult, name: 'test_100_2' });
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
     });
 
     test('Delete row', async () => {
-        const table = connection.table(tableTestsName);
-        await expect(table.findOne({ id: 100 })).resolves;
         await table.delete({ id: 100 });
-        await expect(table.findOne({ id: 100 })).rejects.toMatchObject({
-            code: 404,
-        });
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot()
     });
+
 });
