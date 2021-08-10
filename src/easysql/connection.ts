@@ -32,15 +32,11 @@ export default class Connection {
         return new Promise<T>((resolve, reject) => {
             this._cnn.query(query, (err, results, fields) => {
                 if (err) {
-                    if (callback) {
-                        callback(err);
-                    }
-                    reject(err);
+                    if (callback) callback(err);
+                    else reject(err);
                 } else {
-                    if (callback) {
-                        callback(null, results, fields);
-                    }
-                    resolve(results);
+                    if (callback) callback(null, results, fields);
+                    else resolve(results);
                 }
             });
         });
