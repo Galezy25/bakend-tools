@@ -92,18 +92,7 @@ export default class Connection {
      * Current datetime with format YYYY-MM-DD hh:mm:ss
      */
     public get CURRENT_TIMESTAMP() {
-        const now = new Date();
-        return (
-            now.getFullYear() +
-            '-' +
-            (now.getMonth() + 1 < 10
-                ? '0' + (now.getMonth() + 1)
-                : now.getMonth() + 1) +
-            '-' +
-            (now.getDate() < 10 ? '0' + now.getDate() : now.getDate()) +
-            ' ' +
-            now.toLocaleTimeString()
-        );
+        return this.getDateTimeFormat(new Date());
     }
 
     /**
