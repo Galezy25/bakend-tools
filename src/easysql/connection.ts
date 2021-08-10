@@ -83,7 +83,7 @@ export default class Connection {
                         : this.escape(values[property]);
                 }
             }
-            query = query.replaceAll(expresion, toInject);
+            query = query.replace(new RegExp(expresion,'g'), toInject);
         });
         return query;
     }
@@ -104,6 +104,36 @@ export default class Connection {
             ' ' +
             now.toLocaleTimeString()
         );
+    }
+
+    /**
+     * @summary
+     * Parse a Date to a format 'YYYY-MM-DD hh:mm:ss'
+     * @param date Date
+     * @returns string with format 'YYYY-MM-DD hh:mm:ss'
+     */
+    public getDateTimeFormat(date: Date) {
+        return `${date.getFullYear()}-${
+            date.getMonth() + 1 < 10
+                ? '0' + (date.getMonth() + 1)
+                : date.getMonth() + 1
+        }-${
+            date.getDate() < 10 ? '0' + date.getDate() : date.getDate()
+        } ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+    }
+
+    /**
+     * @summary
+     * Parse a Date to a format 'YYYY/MM/DD'
+     * @param date Date
+     * @returns string with format 'YYYY/MM/DD'
+     */
+    public getDateFormat(date: Date) {
+        return `${date.getFullYear()}/${
+            date.getMonth() + 1 < 10
+                ? '0' + (date.getMonth() + 1)
+                : date.getMonth() + 1
+        }/${date.getDate() < 10 ? '0' + date.getDate() : date.getDate()}`;
     }
 
     /**

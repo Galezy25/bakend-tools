@@ -48,17 +48,7 @@ export default class Table {
      * @returns string with format 'YYYY-MM-DD hh:mm:ss'
      */
     public getDateTimeFormat(date: Date) {
-        return (
-            date.getFullYear() +
-            '-' +
-            (date.getMonth() + 1 < 10
-                ? '0' + (date.getMonth() + 1)
-                : date.getMonth() + 1) +
-            '-' +
-            (date.getDate() < 10 ? '0' + date.getDate() : date.getDate()) +
-            ' ' +
-            date.toLocaleTimeString()
-        );
+        return this._con.getDateTimeFormat(date);
     }
 
     /**
@@ -68,15 +58,7 @@ export default class Table {
      * @returns string with format 'YYYY/MM/DD'
      */
     public getDateFormat(date: Date) {
-        return (
-            date.getFullYear() +
-            '/' +
-            (date.getMonth() + 1 < 10
-                ? '0' + (date.getMonth() + 1)
-                : date.getMonth() + 1) +
-            '/' +
-            (date.getDate() < 10 ? '0' + date.getDate() : date.getDate())
-        );
+        return this._con.getDateFormat(date);
     }
 
     constructor(con: Connection, name: string) {
