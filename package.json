@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -63,5 +63,6 @@
     "mysql": "^2.18.1"
   },
   "description": "A collection of node tools to make express server development quicker and cleaner. Contains tools for jwt generation, SQL utilities, file management, error handling and others.",
-  "keywords": ["backend","tools","easy","jwt","token","mysql","sql","handler","file", "management", "utilities"]
+  "keywords": ["backend","tools","easy","jwt","token","mysql","sql","handler","file", "management", "utilities"],
+  "homepage": "https://github.com/Galezy25/bakend-tools"
 }
