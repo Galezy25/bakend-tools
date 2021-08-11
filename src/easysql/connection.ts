@@ -79,7 +79,7 @@ export default class Connection {
                         : this.escape(values[property]);
                 }
             }
-            query = query.replace(new RegExp(expresion,'g'), toInject);
+            query = query.replace(new RegExp(expresion, 'g'), toInject);
         });
         return query;
     }
@@ -126,8 +126,8 @@ export default class Connection {
      * @param name Name of the table to get
      * @returns Table object
      */
-    public table(name: string) {
-        return new Table(this, name);
+    public table(name: string, id_name?: string) {
+        return new Table(this, name, id_name);
     }
 
     /**

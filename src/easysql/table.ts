@@ -1,8 +1,9 @@
+import CRUD from '../crud.interface';
 import Column from './column';
 import Connection from './connection';
 import { Constraint } from './constraint';
 
-export default class Table {
+export default class Table implements CRUD {
     /* 
         Where patterns
     */
@@ -26,6 +27,15 @@ export default class Table {
 
     private _con: Connection;
     private _name: string;
+    private _id_name?: string;
+
+    public get id_name() {
+        if (this._id_name) {
+            return this._id_name;
+        } else {
+            throw new Error('id_name no defined');
+        }
+    }
 
     /**
      * Name of the table
@@ -61,9 +71,10 @@ export default class Table {
         return this._con.getDateFormat(date);
     }
 
-    constructor(con: Connection, name: string) {
+    constructor(con: Connection, name: string, id_name?: string) {
         this._con = con;
         this._name = name;
+        this._id_name = id_name;
     }
 
     /**
@@ -532,7 +543,7 @@ export default class Table {
      * @returns
      * Promise\<{
      *  insertId: any,
-     *  affectedRows: any[]
+     *  affectedRows: any
      * }\>
      */
     public create(
@@ -657,8 +668,8 @@ export default class Table {
      * @returns Promise
      */
     public update(
-        values: { [field: string]: any },
         where_ctx: { [wherePattern: string]: any },
+        values: { [field: string]: any },
         fields: string[] = Object.getOwnPropertyNames(values).filter(
             prop => values[prop] !== undefined
         )

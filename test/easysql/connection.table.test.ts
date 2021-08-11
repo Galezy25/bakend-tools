@@ -25,7 +25,8 @@ jest.mock('mysql', () => {
 
 describe('Connection tests', () => {
     let connection = new Connection({
-        user: 'root',
+        user: 'tester',
+        database: 'test',
     });
 
     const tableTestsName = 'table_tests';
@@ -33,11 +34,6 @@ describe('Connection tests', () => {
 
     beforeEach(() => {
         mockQuery.mockClear();
-    });
-
-    afterAll(() => {
-        connection.query('DROP TABLE ' + tableTestsName);
-        connection.end();
     });
 
     test('Secure query', async () => {
@@ -170,7 +166,7 @@ describe('Connection tests', () => {
     });
 
     test('Update row', async () => {
-        await table.update({ name: 'test_100_2' }, { id: 100 });
+        await table.update({ id: 100 }, { name: 'test_100_2' });
         expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
     });
 
