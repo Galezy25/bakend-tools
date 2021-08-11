@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RESTful tests Default create and payload security tests 1`] = `" INSERT INTO products (id,name,cost) VALUES (265, 'Atari 2600', 849.88);"`;
+
+exports[`RESTful tests Default delete and headers tests 1`] = `" DELETE FROM products  WHERE id = '265' "`;
+
+exports[`RESTful tests Default find, findOne tests 1`] = `" SELECT * FROM products this  ORDER BY cost ASC LIMIT 250, 50 ; "`;
+
+exports[`RESTful tests Default find, findOne tests 2`] = `" SELECT *  FROM products this  WHERE id = '265' "`;
+
+exports[`RESTful tests Default update tests 1`] = `" UPDATE products SET cost=850  WHERE id = '265' "`;

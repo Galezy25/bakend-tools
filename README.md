@@ -52,3 +52,27 @@ A collection of node tools to make express server development quicker and cleane
   expressApp.use('/', mainRouter);
   expressApp.use(errorHandler.handler);
 ```
+# RESTful
+```ts
+  import express from 'express';
+  import { EasySQL, SimpleToken, RESTful } from 'backend-tools';
+
+  const connectionStore = new EasySQL.Connection({
+    user: 'seller',
+    database: 'store',
+  });
+  const products = connectionStore.table('products', 'id');
+  const simpleToken = new SimpleToken('Secret store key');
+  const productsAPI = new RESTful('/products', products)
+        .find('default')
+        .findOne('default')
+        .create('default')
+        .update('default')
+        .setSecurity(simpleToken.verify, {
+            create: { canModify: true },
+            update: { canModify: true },
+        });
+  const app = express();
+  app.use(express.json());
+  app.use('/resources', productsAPI.router);
+```

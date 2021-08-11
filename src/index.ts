@@ -3,5 +3,8 @@ import AdminFile from './adminfile';
 import SimpleToken from './simpletoken';
 import ErrorHandler from './error.handler';
 import FileApi from './file.api';
+import RESTful from './restful.api';
+import CRUD from './crud.interface';
 
-export { EasySQL, AdminFile, SimpleToken, ErrorHandler, FileApi };
+
+export { EasySQL, AdminFile, SimpleToken, ErrorHandler, FileApi, RESTful, CRUD };
