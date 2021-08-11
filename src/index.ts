@@ -6,5 +6,12 @@ import FileApi from './file.api';
 import RESTful from './restful.api';
 import CRUD from './crud.interface';
 
-
-export { EasySQL, AdminFile, SimpleToken, ErrorHandler, FileApi, RESTful, CRUD };
+export {
+    EasySQL,
+    AdminFile,
+    SimpleToken,
+    ErrorHandler,
+    FileApi,
+    RESTful,
+    CRUD,
+};
