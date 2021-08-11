@@ -2,8 +2,6 @@ import express from 'express';
 import { NextFunction } from 'express-serve-static-core';
 import md5 = require('md5');
 import request = require('supertest');
-import { Response } from '../../../.cache/typescript/4.3/node_modules/@types/express';
-
 import Connection from '../src/easysql/connection';
 import RESTful from '../src/restful.api';
 import SimpleToken from '../src/simpletoken';
@@ -71,7 +69,7 @@ describe('RESTful tests', () => {
     app.use(express.json());
     app.use('/', defaultRESTful.router);
     app.use('/resources', onlyFindRESTful.router);
-    app.use((err: any, req: any, res: Response, next: NextFunction) => {
+    app.use((err: any, req: any, res: express.Response, next: NextFunction) => {
         if (err.statusCode <= 500) {
             res.sendStatus(err.statusCode);
         } else {
