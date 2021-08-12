@@ -20,7 +20,7 @@ describe('File api tests', () => {
     const fileName = 'test.txt';
     const content = 'Content of the test file';
     const nameOnDownload = 'name_to_download.txt';
-    const pathFile = fileName;
+    const pathFile = './' + fileName;
 
     beforeAll(async () => {
         await fileApi.writeFile('', fileName, content);
