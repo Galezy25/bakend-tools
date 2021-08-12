@@ -1,4 +1,4 @@
-export default interface CRUD {
+export interface CRUD {
     id_name: string;
     find: <T = any[]>(context: { [key: string]: any }) => Promise<T>;
     findOne: <T = any>(context: { [key: string]: any }) => Promise<T>;
@@ -9,3 +9,5 @@ export default interface CRUD {
     ) => Promise<any>;
     delete: (context: { [key: string]: any }) => Promise<any>;
 }
+
+export default CRUD;

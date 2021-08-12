@@ -1,11 +1,5 @@
-import Connection from './connection';
-import Table from './table';
-import Column from './column';
-import Constraint from './constraint';
-
-export default {
-    Connection,
-    Table,
-    Column,
-    Constraint,
-};
+import * as Constraint from './constraint';
+export * from './connection';
+export * from './table';
+export * from './column';
+export { Constraint };

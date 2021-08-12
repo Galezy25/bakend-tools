@@ -2,7 +2,7 @@ import md5 from 'md5';
 
 import { ErrorHTTP } from './error.handler';
 
-export default class SimpleToken<Payload = any> {
+export class SimpleToken<Payload = any> {
     private _key: string;
 
     /**
@@ -76,3 +76,4 @@ export default class SimpleToken<Payload = any> {
         return this.encode(md5(expEncoded + payloadEncoded + this._key));
     }
 }
+export default SimpleToken;

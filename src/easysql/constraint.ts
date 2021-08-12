@@ -82,9 +82,3 @@ export class ForeignKey extends ConstraintBase implements ReferenceDefinition {
         );
     }
 }
-
-export default {
-    PrimaryKey,
-    Unique,
-    ForeignKey,
-};

@@ -9,11 +9,11 @@ import { IncomingHttpHeaders } from 'http';
 import { ErrorHTTP } from './error.handler';
 import CRUD from './crud.interface';
 
-type PayloadHandler<Params = {}, Payload = any> = RequestHandler<
+export type PayloadHandler<Params = {}, Payload = any> = RequestHandler<
     Params & { payload: Payload }
 >;
 
-interface Matcher {
+export interface Matcher {
     /**
      * Property into payload of the token.
      */
@@ -36,7 +36,7 @@ interface Matcher {
     _cookies?: any;
 }
 
-export default class RESTful {
+export class RESTful {
     private _path: string;
     private _findHandlers: PayloadHandler[] = [];
     private _findOneHandlers: PayloadHandler<{ id: string }>[] = [];
@@ -402,3 +402,5 @@ export default class RESTful {
         return this;
     }
 }
+
+export default RESTful;

@@ -4,7 +4,7 @@ import { functionsRegexp } from './const.types';
 import { Constraint } from './constraint';
 import Table from './table';
 
-export default class Connection {
+export class Connection {
     private _cnn: mysql.Connection;
 
     /**
@@ -153,3 +153,5 @@ export default class Connection {
 
     public escape = mysql.escape;
 }
+
+export default Connection;

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 
-export default class ErrorHandler {
+export class ErrorHandler {
     private _pathLog: string;
 
     /**
@@ -121,3 +121,5 @@ export class ErrorHTTP extends Error {
         return `Status code: ${this.statusCode}: ${this.message}`;
     }
 }
+
+export default ErrorHandler;

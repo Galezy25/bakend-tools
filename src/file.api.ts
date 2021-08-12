@@ -4,7 +4,7 @@ import path from 'path';
 import AdminFile from './adminfile';
 import SimpleToken from './simpletoken';
 
-export default class FileApi extends AdminFile {
+export class FileApi extends AdminFile {
     public readonly expressApp = express();
     private _simpleToken: SimpleToken<Payload>;
 
@@ -87,3 +87,5 @@ interface Payload {
     file: string;
     name: string;
 }
+
+export default FileApi;

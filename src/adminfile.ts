@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-export default class AdminFile {
+export class AdminFile {
     public static get path() {
         return path;
     }
@@ -228,3 +228,5 @@ export default class AdminFile {
         }
     }
 }
+
+export default AdminFile;

@@ -3,7 +3,7 @@ import Column from './column';
 import Connection from './connection';
 import { Constraint } from './constraint';
 
-export default class Table implements CRUD {
+export class Table implements CRUD {
     /* 
         Where patterns
     */
@@ -841,3 +841,5 @@ export default class Table implements CRUD {
         return this._con.escape;
     }
 }
+
+export default Table;

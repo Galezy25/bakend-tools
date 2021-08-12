@@ -1,6 +1,6 @@
 import { ColumnDefinition, columnDefToString, DataType } from './const.types';
 
-export default class Column {
+export class Column {
     protected _name: string;
     protected _definition: ColumnDefinition;
     private _order?: 'FIRST' | string;
@@ -106,3 +106,5 @@ export default class Column {
             : '';
     }
 }
+
+export default Column;

@@ -1,17 +1,8 @@
-import EasySQL from './easysql';
-import AdminFile from './adminfile';
-import SimpleToken from './simpletoken';
-import ErrorHandler from './error.handler';
-import FileApi from './file.api';
-import RESTful from './restful.api';
-import CRUD from './crud.interface';
-
-export {
-    EasySQL,
-    AdminFile,
-    SimpleToken,
-    ErrorHandler,
-    FileApi,
-    RESTful,
-    CRUD,
-};
+import * as EasySQL from './easysql';
+export * from './adminfile';
+export * from './simpletoken';
+export * from './error.handler';
+export * from './file.api';
+export * from './restful.api';
+export * from './crud.interface';
+export { EasySQL };
