@@ -84,6 +84,11 @@ export default class RESTful {
 
     /**
      * Express router with the RESTful API ready to use.
+     *  - Find: Get this._path
+     *  - FindOne: Get this._path + '/:id'
+     *  - Create: Post this._path
+     *  - Update: Put this._path + '/:id'
+     *  - Delete: Delete this._path + '/:id'
      */
     public get router() {
         let router = Router();
