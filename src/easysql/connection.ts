@@ -67,10 +67,10 @@ export class Connection {
      */
     public secureQuery(query: string, values: { [key: string]: any }) {
         let propsRegexp = new RegExp('{{\\s*([^\\s}]+)\\s*}}', 'gi');
-        let matchResults=  query.matchAll(propsRegexp);
+        let matchResults = query.matchAll(propsRegexp);
         let templateProps: string[][] = [];
         let auxMatch = matchResults.next();
-        while(!auxMatch.done){
+        while (!auxMatch.done) {
             templateProps.push(auxMatch.value);
             auxMatch = matchResults.next();
         }
