@@ -10,7 +10,9 @@ import { ErrorHTTP } from './error.handler';
 import CRUD from './crud.interface';
 
 export type PayloadHandler<Params = {}, Payload = any> = RequestHandler<
-    Params & { payload: Payload }
+    { [key: string]: string } & Params & {
+            payload: Payload;
+        }
 >;
 
 export interface Matcher {
