@@ -11,8 +11,8 @@ import CRUD from './crud.interface';
 
 export type PayloadHandler<Params = {}, Payload = any> = RequestHandler<
     { [key: string]: string } & Params & {
-            payload: Payload;
-        }
+        payload: Payload;
+    }
 >;
 
 export interface Matcher {
@@ -178,6 +178,7 @@ export class RESTful {
     ) {
         try {
             const row = await this.crud.findOne({
+                ...req.query,
                 [this.crud.id_name]: req.params.id,
             });
             return res.json(row);
@@ -192,15 +193,17 @@ export class RESTful {
     ) {
         try {
             const queryRes = await this.crud.create(req.body);
-            if (req.body[this.crud.id_name]) {
-                return res.json(req.body);
-            } else if (queryRes.affectedRows > 1) {
+            if (req.body instanceof Array) {
                 return res.json(queryRes);
-            } else {
+            } else if (req.body[this.crud.id_name]) {
+                return res.json(req.body);
+            } else if (queryRes.insertId) {
                 const row = this.crud.findOne({
                     [this.crud.id_name]: queryRes.insertId,
                 });
                 return res.json(row);
+            } else {
+                return res.sendStatus(200);
             }
         } catch (err) {
             return next(err);
@@ -321,6 +324,7 @@ export class RESTful {
     /**
      *
      * @param handler If it's 'default' will be set the default handler to this operation.
+     *  - 'default': Make a Find operation into CRUD, the context will be set by the query of the request.
      * Other wise, you can define a custom handler.
      * @param middlewares Express middleware that will be execute before the handler
      */
@@ -338,6 +342,7 @@ export class RESTful {
     /**
      *
      * @param handler If it's 'default' will be set the default handler to this operation.
+     *  - 'default': Make a FindOne operation into CRUD, the context will be { [this.crud.id_name]: request.params.id }.
      * Other wise, you can define a custom handler.
      * @param middlewares Express middleware that will be execute before the handler
      */
@@ -355,6 +360,7 @@ export class RESTful {
     /**
      *
      * @param handler If it's 'default' will be set the default handler to this operation.
+     *  - 'default': Make a Create operation into CRUD, the values will be set by the body of the request.
      * Other wise, you can define a custom handler.
      * @param middlewares Express middleware that will be execute before the handler
      */
@@ -372,6 +378,9 @@ export class RESTful {
     /**
      *
      * @param handler If it's 'default' will be set the default handler to this operation.
+     *  - 'default': Make an Update operation into CRUD:
+     *      - context will be { [this.crud.id_name]: request.params.id }, 
+     *      - valuesToUpdate will be the body of the request.
      * Other wise, you can define a custom handler.
      * @param middlewares Express middleware that will be execute before the handler
      */
@@ -389,6 +398,7 @@ export class RESTful {
     /**
      *
      * @param handler If it's 'default' will be set the default handler to this operation.
+     *  - 'default': Make a Delete operation into CRUD, the context will be { [this.crud.id_name]: request.params.id }.
      * Other wise, you can define a custom handler.
      * @param middlewares Express middleware that will be execute before the handler
      */

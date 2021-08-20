@@ -6,6 +6,6 @@ exports[`RESTful tests Default delete and headers tests 1`] = `" DELETE FROM pro
 
 exports[`RESTful tests Default find, findOne tests 1`] = `" SELECT * FROM products this  ORDER BY cost ASC LIMIT 250, 50 ; "`;
 
-exports[`RESTful tests Default find, findOne tests 2`] = `" SELECT *  FROM products this  WHERE id = '265' "`;
+exports[`RESTful tests Default find, findOne tests 2`] = `" SELECT this.*,categories.name AS category_name  FROM products this  INNER JOIN category ON this.category=categories.id WHERE id = '265' "`;
 
 exports[`RESTful tests Default update tests 1`] = `" UPDATE products SET cost=850  WHERE id = '265' "`;
