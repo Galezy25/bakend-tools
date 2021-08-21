@@ -11,8 +11,8 @@ import CRUD from './crud.interface';
 
 export type PayloadHandler<Params = {}, Payload = any> = RequestHandler<
     { [key: string]: string } & Params & {
-        payload: Payload;
-    }
+            payload: Payload;
+        }
 >;
 
 export interface Matcher {
@@ -379,7 +379,7 @@ export class RESTful {
      *
      * @param handler If it's 'default' will be set the default handler to this operation.
      *  - 'default': Make an Update operation into CRUD:
-     *      - context will be { [this.crud.id_name]: request.params.id }, 
+     *      - context will be { [this.crud.id_name]: request.params.id },
      *      - valuesToUpdate will be the body of the request.
      * Other wise, you can define a custom handler.
      * @param middlewares Express middleware that will be execute before the handler

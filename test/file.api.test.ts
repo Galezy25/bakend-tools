@@ -1,5 +1,6 @@
 import express = require('express');
 import request = require('supertest');
+import path = require('path');
 
 import FileApi from '../src/file.api';
 
@@ -20,7 +21,7 @@ describe('File api tests', () => {
     const fileName = 'test.txt';
     const content = 'Content of the test file';
     const nameOnDownload = 'name_to_download.txt';
-    const pathFile = './' + fileName;
+    const pathFile = path.normalize('./' + fileName);
 
     beforeAll(async () => {
         await fileApi.writeFile('', fileName, content);

@@ -91,7 +91,9 @@ describe('RESTful tests', () => {
         expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
 
         await request(app)
-            .get('/default/265?category_inner=this.category:categories.id&_fields=this.*,categories.name%20AS%20category_name')
+            .get(
+                '/default/265?category_inner=this.category:categories.id&_fields=this.*,categories.name%20AS%20category_name'
+            )
             .expect(200);
         expect(mockQuery.mock.calls[1][0]).toMatchSnapshot();
     });
