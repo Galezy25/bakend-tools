@@ -8,6 +8,10 @@ export class AdminFile {
 
     protected _rootPath: string;
 
+    public get rootPath() {
+        return this._rootPath;
+    }
+
     /**
      *
      * @param rootPath Absolute path of the root of this file manager.
@@ -25,28 +29,29 @@ export class AdminFile {
      * @param namedWithExt Name with extension of the file
      * @param data Content of the file
      * @param callback (optional)
-     * @returns Promise
+     * @returns Promise that returns relativePath
      */
     public writeFile(
         dir: string,
         namedWithExt: string,
         data: any,
-        callback?: (error?: NodeJS.ErrnoException) => void
+        callback?: (
+            error?: NodeJS.ErrnoException,
+            relativePath?: string
+        ) => void
     ) {
-        return new Promise<void>((resolve, reject) => {
-            let afPath = this._rootPath;
-
-            let fullDir = path.resolve(afPath, dir);
+        return new Promise<string>((resolve, reject) => {
+            let fullDir = path.resolve(this._rootPath, dir);
             this.makeDir(fullDir);
-
-            let new_path = path.resolve(fullDir, namedWithExt);
-            fs.writeFile(new_path, data, function(err) {
+            let fullPath = path.resolve(fullDir, namedWithExt);
+            let relativePath = path.relative(this._rootPath, fullPath);
+            fs.writeFile(fullPath, data, function(err) {
                 if (err) {
                     if (callback) callback(err);
                     else reject(err);
                 } else {
-                    if (callback) callback(undefined);
-                    else resolve();
+                    if (callback) callback(undefined, relativePath);
+                    else resolve(relativePath);
                 }
             });
         });
@@ -58,23 +63,29 @@ export class AdminFile {
      * @param namedWithExt Name with extension of the file
      * @param data Content to append in the file
      * @param callback (optional)
-     * @returns Promise
+     * @returns Promise that returns relativePath
      */
     appendFile(
         dir: string,
         namedWithExt: string,
         data: any,
-        callback?: (error?: NodeJS.ErrnoException) => void
+        callback?: (
+            error?: NodeJS.ErrnoException,
+            relativePath?: string
+        ) => void
     ) {
-        return new Promise<void>((resolve, reject) => {
-            let filePath = path.resolve(this._rootPath, dir, namedWithExt);
-            fs.appendFile(filePath, data, err => {
+        return new Promise<string>((resolve, reject) => {
+            let fullDir = path.resolve(this._rootPath, dir);
+            this.makeDir(fullDir);
+            let fullPath = path.resolve(fullDir, namedWithExt);
+            let relativePath = path.relative(this._rootPath, fullPath);
+            fs.appendFile(fullPath, data, err => {
                 if (err) {
                     if (callback) callback(err);
                     else reject(err);
                 } else {
-                    if (callback) callback(undefined);
-                    else resolve();
+                    if (callback) callback(undefined, relativePath);
+                    else resolve(relativePath);
                 }
             });
         });
