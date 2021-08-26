@@ -76,8 +76,8 @@ export class Connection {
         }
         templateProps.forEach(([expresion, property]) => {
             let toInject = 'DEFAULT';
-            if (values[property] !== undefined) {
-                if (values[property] === null) {
+            if (values[property] !== undefined || values[property] === 'undefined') {
+                if (values[property] === null || values[property] === 'null') {
                     toInject = 'NULL';
                 } else {
                     toInject = functionsRegexp.test(values[property])
