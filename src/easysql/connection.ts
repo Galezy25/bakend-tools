@@ -5,14 +5,14 @@ import { Constraint } from './constraint';
 import Table from './table';
 
 export class Connection {
-    private _cnn: mysql.Connection;
+    private _cnn: mysql.Pool;
 
     /**
      *
      * @param config
      */
-    constructor(config: mysql.ConnectionConfig) {
-        this._cnn = mysql.createConnection(config);
+    constructor(config: mysql.PoolConfig) {
+        this._cnn = mysql.createPool(config);
     }
 
     /**

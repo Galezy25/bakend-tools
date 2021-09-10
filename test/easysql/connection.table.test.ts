@@ -13,7 +13,7 @@ const mockQuery = jest.fn(
 );
 jest.mock('mysql', () => {
     return {
-        createConnection: jest.fn(_config => ({
+        createPool: jest.fn(_config => ({
             query: mockQuery,
             end: jest.fn(),
         })),
