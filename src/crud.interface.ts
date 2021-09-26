@@ -2,6 +2,7 @@ export interface CRUD {
     id_name: string;
     find: <T = any[]>(context: { [key: string]: any }) => Promise<T>;
     findOne: <T = any>(context: { [key: string]: any }) => Promise<T>;
+    count: (context: { [key: string]: any }) => Promise<number>;
     create: (
         valuesToCreate: any
     ) => Promise<{

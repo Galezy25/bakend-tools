@@ -511,6 +511,74 @@ export class Table implements CRUD {
 
     /**
      * @summary
+     * Count rows who respect to where_ctx
+     * @param where_ctx
+     * Set filter values
+     *
+     *  - Rows with field_name equal to value
+     *  ```ts
+     *      [field_name]: value
+     *  ```
+     *
+     *  - Rows with field_name not equal to value
+     *  ```ts
+     *      [field_name + '_n']: value
+     *  ```
+     *
+     *  - Rows with field_name must be equal to val_1, val_2 or val_3
+     *  ```ts
+     *      [field_name + '_in']: `${val_1},${val_2},${val_3}`
+     *  ```
+     *
+     *  - Rows with field_name must not be equal to val_1, val_2 or val_3
+     *  ```ts
+     *      [field_name + '_nin']: `${val_1},${val_2},${val_3}`
+     *  ```
+     *
+     *  - Rows with field_name greater than value
+     *  ```ts
+     *      [field_name + '_gt']: value
+     *  ```
+     *
+     *  - Rows with field_name greater than or equal to value
+     *  ```ts
+     *      [field_name + '_gteq']: value
+     *  ```
+     *
+     *  - Rows with field_name less than value
+     *  ```ts
+     *      [field_name + '_ls']: value
+     *  ```
+     *
+     *  - Rows with field_name less than or equal to value
+     *  ```ts
+     *      [field_name + '_lseq']: value
+     *  ```
+     *
+     *  - Rows with field_name math with the pattern
+     *  ```ts
+     *      [field_name + '_like']: pattern
+     *  ```
+     *
+     *  - Rows with field_name is between value_1 and value_2
+     *  ```ts
+     *      [field_name + '_btw']:  `${value_1}:${value_2}`
+     *  ```
+     *
+     * @returns Promise
+     */
+    public async count(where_ctx: { [field: string]: any } = {}) {
+        let query =
+            ' SELECT COUNT(*) FROM ' +
+            this._name +
+            ' ' +
+            this.getWhere(where_ctx);
+        const queryRes = await this._con.query(query);
+        return queryRes[0]['COUNT(*)'];
+    }
+
+    /**
+     * @summary
      * Create 1 or more rows into the table
      *
      * @param values
