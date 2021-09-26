@@ -44,6 +44,7 @@ export class RESTful {
     private _path: string;
     private _findHandlers: PayloadHandler[] = [];
     private _findOneHandlers: PayloadHandler<{ id: string }>[] = [];
+    private _countHandlers: PayloadHandler[] = [];
     private _createHandlers: PayloadHandler[] = [];
     private _updateHandlers: PayloadHandler<{ id: string }>[] = [];
     private _deleteHandlers: PayloadHandler<{ id: string }>[] = [];
@@ -130,7 +131,7 @@ export class RESTful {
 
     private __defaultSecurity(
         verifyToken: (token: string) => Promise<any>,
-        toMatch: Matcher
+        toMatch: Matcher | ((payloadToMatch: Matcher) => boolean)
     ): PayloadHandler {
         return async (req, __res, next) => {
             try {
@@ -146,7 +147,11 @@ export class RESTful {
                         _cookies: req.cookies,
                     };
                     req.params.payload = payload;
-                    this.__match(payloadToMatch, toMatch);
+                    if (typeof toMatch === 'object') {
+                        this.__match(payloadToMatch, toMatch);
+                    } else if (!toMatch(payloadToMatch)) {
+                        next(new ErrorHTTP('No match', { statusCode: 401 }));
+                    }
                     next();
                 } else {
                     next(
@@ -184,6 +189,18 @@ export class RESTful {
                 [this.crud.id_name]: req.params.id,
             });
             return res.json(row);
+        } catch (err) {
+            return next(err);
+        }
+    }
+    private async __defaultCount(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
+        try {
+            const count = await this.crud.count(req.query);
+            return res.json({ count });
         } catch (err) {
             return next(err);
         }
@@ -276,18 +293,18 @@ export class RESTful {
     /**
      * Set the default security handler that verify the token and compare the payload with
      * @param verifyToken Funtion to verify the token recived into the header authorization of the HTTP Request
-     * @param toMatch Set a Matcher object to any CRUD operation (it can be {}).
+     * @param toMatch Set a Matcher object or predicate function to any CRUD operation (it can be {}).
      * If it doesn't define to some operation that operation won't have the security handler.
      *
      */
     setSecurity(
         verifyToken: (token: string) => Promise<any>,
         toMatch: {
-            find?: Matcher;
-            findOne?: Matcher;
-            create?: Matcher;
-            update?: Matcher;
-            delete?: Matcher;
+            find?: Matcher | ((payloadToMatch: Matcher) => boolean);
+            findOne?: Matcher | ((payloadToMatch: Matcher) => boolean);
+            create?: Matcher | ((payloadToMatch: Matcher) => boolean);
+            update?: Matcher | ((payloadToMatch: Matcher) => boolean);
+            delete?: Matcher | ((payloadToMatch: Matcher) => boolean);
         }
     ) {
         if (toMatch.find) {
@@ -356,6 +373,24 @@ export class RESTful {
             ...this._findOneHandlers,
             ...middlewares,
             handler === 'default' ? this.__defaultFindOne : handler,
+        ];
+        return this;
+    }
+    /**
+     *
+     * @param handler If it's 'default' will be set the default handler to this operation.
+     *  - 'default': Make a Count operation into CRUD, the context will be set by the query of the request.
+     * Other wise, you can define a custom handler.
+     * @param middlewares Express middleware that will be execute before the handler
+     */
+    count<Payload = any>(
+        handler: 'default' | PayloadHandler<{}, Payload>,
+        ...middlewares: PayloadHandler<{}, Payload>[]
+    ) {
+        this._countHandlers = [
+            ...this._countHandlers,
+            ...middlewares,
+            handler === 'default' ? this.__defaultCount : handler,
         ];
         return this;
     }

@@ -53,7 +53,9 @@ describe('RESTful tests', () => {
         .update('default')
         .delete('default')
         .setSecurity(simpleToken.verify, {
-            create: { modify: true },
+            create: payload => {
+                return payload.modify;
+            },
             update: { modify: true },
             delete: {
                 modify: true,
