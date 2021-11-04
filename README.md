@@ -49,7 +49,7 @@ simpleToken
     });
 ```
 
-Bcrypt algorithm is used to have better security, set the _saltRound_ or _cost factor_  (10 by default) into the instance of a _SimpleToken_ object.
+Bcrypt algorithm is used to have better security, set the _saltRound_ or _cost factor_ (10 by default) into the instance of a _SimpleToken_ object.
 
 ```ts
 const simpleToken = new SimpleToken('SECRET KEY STRING', 15);
@@ -155,28 +155,30 @@ const {
 # EasySQL
 
 ```ts
-  import { EasySQL } from 'backend-tools';
+import { EasySQL } from 'backend-tools';
 
-  const testDBConnection = new EasySQL.Connection({
+const testDBConnection = new EasySQL.Connection({
     username: 'tester',
-    database: 'test'
-  })
+    database: 'test',
+});
 
-  /**
-   * Table object implements CRUD operation like Find, FindOne, Create, Update, Delete
-   */
-  const usersTable = testDBConnection.table('users');
+/**
+ Table object implements CRUD operation like Find, FindOne, Create, Update, Delete
+ */
+const usersTable = testDBConnection.table('users');
 
-  /**
-   * Equals to "SELECT * FROM users this WHERE team IN ('A','Y','E','X','B') ORDER BY team ASC ;" query
-   */
-  usersTable.find({
-    _sort: 'team:ASC'
-    team_in: 'A,Y,E,X,B'
-  })
-  .then(users => {
-    console.log(users)
-  })
+/**
+  Equals to "SELECT * FROM users WHERE team IN ('A','Y','E','X','B') AND (email LIKE '%@gmail.com' OR email LIKE '%@outlook.com') ORDER BY team ASC ;" query
+ */
+usersTable
+    .find({
+        _sort: 'team:ASC',
+        team_in: 'A,Y,E,X,B',
+        email_like: ['%@gmail.com', '%@outlook.com'],
+    })
+    .then(users => {
+        console.log(users);
+    });
 ```
 
 # AdminFile
