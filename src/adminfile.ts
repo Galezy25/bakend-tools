@@ -225,7 +225,7 @@ export class AdminFile {
             const { namedWithExt } = await this.searchFile(dir, named);
             await this.eraseFile(dir, namedWithExt, callback);
         } catch (err) {
-            if (err.name !== 'NOT_FOUND') throw err;
+            if ((err as any)?.name !== 'NOT_FOUND') throw err;
         }
     }
 
