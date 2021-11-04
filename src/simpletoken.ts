@@ -1,16 +1,22 @@
-import md5 from 'md5';
+import bcrypt from 'bcrypt';
 
 import { ErrorHTTP } from './error.handler';
 
 export class SimpleToken<Payload = any> {
     private _key: string;
+    private _saltRounds: number;
 
     /**
      *
      * @param key Secret string to sign the token.
+     * @param saltRounds Cost factor to hash
      */
-    constructor(key: string = Date.now().toString(36)) {
+    constructor(
+        key: string = Date.now().toString(36),
+        saltRounds: number = 10
+    ) {
         this._key = key;
+        this._saltRounds = saltRounds;
         this.verify = this.verify.bind(this);
         this.sign = this.sign.bind(this);
     }
@@ -22,7 +28,11 @@ export class SimpleToken<Payload = any> {
      */
     public async verify(token: string) {
         const [expEncoded, payloadEncoded, signature] = token.split('.');
-        if (signature === this.signature(expEncoded, payloadEncoded)) {
+        const isSigned = await bcrypt.compare(
+            this.getStringToSign(expEncoded, payloadEncoded),
+            this.decode(signature)
+        );
+        if (isSigned) {
             const payload: Payload = JSON.parse(this.decode(payloadEncoded));
             const exp = Number.parseInt(this.decode(expEncoded));
             const isOnDate = !exp || exp >= new Date().getTime();
@@ -73,7 +83,15 @@ export class SimpleToken<Payload = any> {
     }
 
     private signature(expEncoded: string, payloadEncoded: string) {
-        return this.encode(md5(expEncoded + payloadEncoded + this._key));
+        let hash = bcrypt.hashSync(
+            this.getStringToSign(expEncoded, payloadEncoded),
+            this._saltRounds
+        );
+        return this.encode(hash);
+    }
+
+    private getStringToSign(expEncoded: string, payloadEncoded: string) {
+        return expEncoded + payloadEncoded + this._key;
     }
 }
 export default SimpleToken;

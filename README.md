@@ -49,6 +49,12 @@ simpleToken
     });
 ```
 
+Bcrypt algorithm is used to have better security, set the _saltRound_ or _cost factor_  (10 by default) into the instance of a _SimpleToken_ object.
+
+```ts
+const simpleToken = new SimpleToken('SECRET KEY STRING', 15);
+```
+
 # PermissionsManager
 
 ```ts

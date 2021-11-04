@@ -1,6 +1,5 @@
 import express from 'express';
 import { NextFunction } from 'express-serve-static-core';
-import md5 = require('md5');
 import request = require('supertest');
 import Connection from '../src/easysql/connection';
 import RESTful from '../src/restful.api';
@@ -39,7 +38,7 @@ describe('RESTful tests', () => {
         name: 'Atari 2600',
         cost: 849.88,
     };
-    const confirmationMd5 = md5('Confirmation pass');
+    const confirmationMd5 = 'Confirmation pass';
     const connection = new Connection({
         user: 'tester',
         database: 'test',
