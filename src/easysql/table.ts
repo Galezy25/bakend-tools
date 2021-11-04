@@ -3,6 +3,16 @@ import Column from './column';
 import Connection from './connection';
 import { Constraint } from './constraint';
 
+export type Value = string | number | null | boolean;
+
+interface WhereContext {
+    [filter: string]: Value | Value[];
+}
+
+interface JoinContext {
+    [join: string]: string;
+}
+
 export class Table implements CRUD {
     /* 
         Where patterns
@@ -302,7 +312,7 @@ export class Table implements CRUD {
      */
     public find<T = any[]>(
         ctx: {
-            [whereOrJoinPattern: string]: any;
+            [filterOrJoin: string]: Value | Value[] | string | undefined;
             _sort?: string;
             _limit?: number;
             _start?: number;
@@ -316,7 +326,7 @@ export class Table implements CRUD {
 
         let query =
             ' SELECT ' + fields.join(', ') + ' FROM ' + this._name + ' this ';
-        let joins = this.getRelationTables(ctx);
+        let joins = this.getRelationTables(ctx as JoinContext);
 
         if (joins.length > 0) {
             query += joins
@@ -334,7 +344,7 @@ export class Table implements CRUD {
                 })
                 .join(' ');
         }
-        query += this.getWhere(ctx);
+        query += this.getWhere(ctx as WhereContext);
 
         if (ctx._sort !== undefined) {
             let auxSort = ctx._sort.split(':');
@@ -461,7 +471,7 @@ export class Table implements CRUD {
      */
     public findOne(
         ctx: {
-            [whereOrJoinPattern: string]: any;
+            [filterOrJoin: string]: Value | Value[] | string | undefined;
             _fields?: string;
         },
         fields: string[] = ['*']
@@ -473,7 +483,7 @@ export class Table implements CRUD {
         let query = ' SELECT ' + fields.join(',') + ' ';
         query += ' FROM ' + this._name + ' this ';
 
-        let joins = this.getRelationTables(ctx);
+        let joins = this.getRelationTables(ctx as JoinContext);
         if (joins.length > 0) {
             query += joins
                 .map(join => {
@@ -491,7 +501,7 @@ export class Table implements CRUD {
                 .join(' ');
         }
 
-        query += this.getWhere(ctx);
+        query += this.getWhere(ctx as WhereContext);
 
         return new Promise<any>((resolve, reject) => {
             this._con
@@ -567,7 +577,7 @@ export class Table implements CRUD {
      *
      * @returns Promise
      */
-    public async count(where_ctx: { [field: string]: any } = {}) {
+    public async count(where_ctx: WhereContext = {}) {
         let query =
             ' SELECT COUNT(*) FROM ' +
             this._name +
@@ -736,7 +746,7 @@ export class Table implements CRUD {
      * @returns Promise
      */
     public update(
-        where_ctx: { [wherePattern: string]: any },
+        where_ctx: WhereContext,
         values: { [field: string]: any },
         fields: string[] = Object.getOwnPropertyNames(values).filter(
             prop => values[prop] !== undefined
@@ -810,13 +820,13 @@ export class Table implements CRUD {
      *
      * @returns Promise
      */
-    public delete(where_ctx: { [field: string]: any }) {
+    public delete(where_ctx: WhereContext) {
         let query =
             ' DELETE FROM ' + this._name + ' ' + this.getWhere(where_ctx);
         return this._con.query(query);
     }
 
-    private getWhere(ctx: { [field: string]: any }) {
+    private getWhere(ctx: { [field: string]: Value | Value[] }) {
         let propsWhere = Object.getOwnPropertyNames(ctx);
         propsWhere = propsWhere.filter(prop => {
             return (
@@ -829,58 +839,16 @@ export class Table implements CRUD {
         });
 
         propsWhere = propsWhere.map(prop => {
-            if (this.RE_n.test(prop)) {
-                return prop.replace('_n', '') + ' <> ' + this.escape(ctx[prop]);
-            } else if (this.RE_gt.test(prop)) {
-                return prop.replace('_gt', '') + ' > ' + this.escape(ctx[prop]);
-            } else if (this.RE_gteq.test(prop)) {
-                return (
-                    prop.replace('_gteq', '') + ' >= ' + this.escape(ctx[prop])
-                );
-            } else if (this.RE_ls.test(prop)) {
-                return prop.replace('_ls', '') + ' < ' + this.escape(ctx[prop]);
-            } else if (this.RE_lseq.test(prop)) {
-                return (
-                    prop.replace('_lseq', '') + ' <= ' + this.escape(ctx[prop])
-                );
-            } else if (this.RE_like.test(prop)) {
-                return (
-                    prop.replace('_like', '') +
-                    ' LIKE ' +
-                    this.escape(ctx[prop])
-                );
-            } else if (this.RE_nin.test(prop)) {
-                return (
-                    prop.replace('_nin', '') +
-                    ' NOT IN (' +
-                    ctx[prop]
-                        .split(',')
-                        .map((val: any) => this.escape(val))
-                        .join(',') +
-                    ')'
-                );
-            } else if (this.RE_in.test(prop)) {
-                return (
-                    prop.replace('_in', '') +
-                    ' IN (' +
-                    ctx[prop]
-                        .split(',')
-                        .map((val: any) => this.escape(val))
-                        .join(',') +
-                    ')'
-                );
-            } else if (this.RE_btw.test(prop)) {
-                let btwValues = ctx[prop].split(',');
-                return (
-                    prop.replace('_btw', '') +
-                    ' BETWEEN ' +
-                    this.escape(btwValues[0]) +
-                    ' AND ' +
-                    this.escape(btwValues[1])
-                );
+            let querySegment = '';
+            const contextValue = ctx[prop];
+            if (contextValue instanceof Array) {
+                querySegment = `(${contextValue
+                    .map(value => this.getWhereSegment(prop, value))
+                    .join(' OR ')})`;
             } else {
-                return prop + ' = ' + this.escape(ctx[prop]);
+                querySegment = this.getWhereSegment(prop, contextValue);
             }
+            return querySegment;
         });
 
         if (propsWhere.length > 0) {
@@ -890,7 +858,60 @@ export class Table implements CRUD {
         }
     }
 
-    private getRelationTables(ctx: { [table_join: string]: any }) {
+    private getWhereSegment(prop: string, value: Value) {
+        let querySegment = '';
+        if (this.RE_n.test(prop)) {
+            querySegment = `${prop.replace('_n', '')} <> ${this.escape(value)}`;
+        } else if (this.RE_gt.test(prop)) {
+            querySegment = `${prop.replace('_gt', '')} > ${this.escape(value)}`;
+        } else if (this.RE_gteq.test(prop)) {
+            querySegment = `${prop.replace('_gteq', '')} >= ${this.escape(
+                value
+            )}`;
+        } else if (this.RE_ls.test(prop)) {
+            querySegment = `${prop.replace('_ls', '')} < ${this.escape(value)}`;
+        } else if (this.RE_lseq.test(prop)) {
+            querySegment = `${prop.replace('_lseq', '')} <= ${this.escape(
+                value
+            )}`;
+        } else if (this.RE_like.test(prop)) {
+            querySegment = `${prop.replace('_like', '')} LIKE ${this.escape(
+                value
+            )}`;
+        } else if (this.RE_nin.test(prop)) {
+            querySegment =
+                prop.replace('_nin', '') +
+                ' NOT IN (' +
+                (value as string)
+                    .split(',')
+                    .map((val: any) => this.escape(val))
+                    .join(',') +
+                ')';
+        } else if (this.RE_in.test(prop)) {
+            querySegment =
+                prop.replace('_in', '') +
+                ' IN (' +
+                (value as string)
+                    .split(',')
+                    .map((val: any) => this.escape(val))
+                    .join(',') +
+                ')';
+        } else if (this.RE_btw.test(prop)) {
+            let btwValues = (value as string).split(',');
+            querySegment =
+                prop.replace('_btw', '') +
+                ' BETWEEN ' +
+                this.escape(btwValues[0]) +
+                ' AND ' +
+                this.escape(btwValues[1]);
+        } else {
+            querySegment = `${prop} = ${this.escape(value)}`;
+        }
+
+        return querySegment;
+    }
+
+    private getRelationTables(ctx: JoinContext) {
         return Object.getOwnPropertyNames(ctx)
             .filter(prop => this.RE_join.test(prop))
             .map(prop => {

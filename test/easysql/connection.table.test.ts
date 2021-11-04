@@ -165,6 +165,18 @@ describe('Connection tests', () => {
         expect(mockQuery.mock.calls[1][0]).toMatchSnapshot();
     });
 
+    test('Find with or/and', async () => {
+        await table.find({
+            email_like: [
+                '%@test.net',
+                '%@subdomain.test.net',
+                '%@subdomain2.test.net',
+            ],
+            leader_in: '2,5',
+        });
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
+    });
+
     test('Update row', async () => {
         await table.update({ id: 100 }, { name: 'test_100_2' });
         expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();

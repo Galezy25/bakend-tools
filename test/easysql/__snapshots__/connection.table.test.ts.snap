@@ -27,6 +27,8 @@ exports[`Connection tests Find rows 1`] = `" SELECT this.*, table_tests.name AS 
 
 exports[`Connection tests Find rows 2`] = `" SELECT * FROM table_tests this  WHERE email LIKE 'test_2%' AND leader IN ('2','5') ; "`;
 
+exports[`Connection tests Find with or/and 1`] = `" SELECT * FROM table_tests this  WHERE (email LIKE '%@test.net' OR email LIKE '%@subdomain.test.net' OR email LIKE '%@subdomain2.test.net') AND leader IN ('2','5') ; "`;
+
 exports[`Connection tests Find, Find One of a empty table 1`] = `" SELECT * FROM table_tests this ; "`;
 
 exports[`Connection tests Find, Find One of a empty table 2`] = `" SELECT *  FROM table_tests this  WHERE id = 1 "`;
