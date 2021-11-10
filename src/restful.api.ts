@@ -220,9 +220,9 @@ export class RESTful {
                 const row = this.crud.findOne({
                     [this.crud.id_name]: queryRes.insertId,
                 });
-                return res.json(row);
+                return res.status(201).json(row);
             } else {
-                return res.sendStatus(200);
+                return res.sendStatus(201);
             }
         } catch (err) {
             return next(err);
