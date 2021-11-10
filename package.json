@@ -78,5 +78,8 @@
     "management",
     "utilities"
   ],
-  "homepage": "https://github.com/Galezy25/bakend-tools"
+  "homepage": "https://github.com/Galezy25/bakend-tools",
+  "bugs": {
+    "url": "https://github.com/Galezy25/bakend-tools/issues"
+  }
 }
