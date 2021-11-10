@@ -5,6 +5,12 @@ This is a collection of node tools to make express server development quicker an
 - [Overview](#overview)
 - [SimpleToken](#simpletoken)
 - [PermissionsManager](#permissionsmanager)
+- [Session manager](#session-manager)
+  - [Configuration](#configuration)
+  - [Usage](#usage)
+    - [req.setSession](#reqsetsession)
+    - [verifySession](#verifysession)
+    - [req.removeSession](#reqremovesession)
 - [EasySQL](#easysql)
 - [AdminFile](#adminfile)
 - [ErrorHandler](#errorhandler)
@@ -151,6 +157,108 @@ const {
     products_delete,
 } = permissionsManager.verifyPayload(payload);
 ```
+
+# Session manager
+
+```ts
+import express from 'express';
+import { sessionManager, verifySession } from 'backend-tools';
+
+let expressApp = express();
+expressApp.use(express.json());
+
+expressApp.use(sessionManager('SECRET KEY STRING'));
+
+expressApp.post('/login', (req, res, next) => {
+    let { username, password } = req.body;
+
+    // ...
+
+    // Success login
+
+    /*
+        Expires on 1800 seconds (30 min).
+    */
+    req.setSession({ user: username, canReadPrivate: true }, 1800, {
+        // Only accepted on https request.
+        secure: true,
+    });
+
+    res.sendStatus(200);
+});
+
+expressApp.get(
+    '/private-resource',
+    verifySession(session_data => session_data.canReadPrivate),
+    (req, res, next) => {
+        res.send('This is a private data');
+    }
+);
+```
+
+## Configuration
+
+```ts
+sessionManager(secret, defaultOptions);
+```
+
+-   _secret_: Password to sign sessions.
+-   _defaultOptions_: Options to configure sessions by default.
+    -   _lifetime_: Seconds of lifetime before expires.
+    -   _authorizationHeader_: Set if the manager accept authorization header (Default: `true`).
+    -   _cookie_: Cookie configuration.
+    -   _errorHandler_: Function that handle if a token verify is unsuccessful.
+
+## Usage
+
+### req.setSession
+
+```ts
+req.setSession(payload, expiresIn, options);
+```
+
+-   _payload_: Object with session information.
+-   _expiresIn_: (Optional) Seconds of lifetime before expires (By default defaultOption.lifetime), if it's `0` or `undefined` never expires.
+-   _options_: (Optional) Set session url (By default defaultOption.cookie).
+
+    -   _secure_: If only used on HTTPS protocol.
+    -   _domain_
+    -   _path_
+
+**Returns** a object that can be used on [OAuth2](https://oauth.net/2/).
+
+-   access_token.
+-   token_type: `Bearer`.
+-   expires_in.
+-   expires_at.
+
+### verifySession
+
+```ts
+verifySession(verifyPayload?: (payload) => boolean)
+```
+
+Returns a middleware that checks if the request has a session and checks its payload (if verifyPayload has setted).
+
+[PermissionsManager](#permissionsmanager) Verifiers can be used
+
+```ts
+canCreateVerify = permissionsManager.getVerifier('products_create');
+
+expressApp.post(
+    '/products',
+    verifySession(canCreateVerify),
+    createProductsHandler
+);
+```
+
+### req.removeSession
+
+```ts
+req.removeSession(path?: string)
+```
+
+Delete the session associated with the _path_.
 
 # EasySQL
 
@@ -330,7 +438,7 @@ The values to be created are set by the request body.
 -   If it's 1 object in the body:
     -   If it has id, the handler will respond with that object.
     -   If it doesn't have id, it will make a FindOne with the insertId property resulting from the operation.
-    -   If it has no id and the result does not have the insertId property, it will respond with status 200.
+    -   If it has no id and the result does not have the insertId property, it will respond with status 201.
 -   If the body is an array, it will respond with the result of the operation.
 
 **Example:** POST `/products` body `{ name: 'Atari 2600', cost: 849.88 }` equals to:

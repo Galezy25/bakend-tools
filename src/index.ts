@@ -6,4 +6,5 @@ export * from './file.api';
 export * from './restful.api';
 export * from './crud.interface';
 export * from './permissions.manager';
+export * from './session.manager';
 export { EasySQL };
