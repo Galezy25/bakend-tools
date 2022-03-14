@@ -100,6 +100,9 @@ export class RESTful {
         if (this._findHandlers.length) {
             router.get(this._path, ...this._findHandlers);
         }
+        if (this._countHandlers.length) {
+            router.get(`${this._path}/count`, ...this._countHandlers);
+        }
         if (this._findOneHandlers.length) {
             router.get(`${this._path}/:id`, ...this._findOneHandlers);
         }

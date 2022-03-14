@@ -43,7 +43,10 @@ describe('RESTful tests', () => {
         user: 'tester',
         database: 'test',
     });
-    const table = connection.table('products', 'id');
+    const table = connection.table('products', {
+        id_name: 'id',
+        tablesRelated: ['categories'],
+    });
     const simpleToken = new SimpleToken('RESTful tests');
     const defaultRESTful = new RESTful('/default', table)
         .find('default')
@@ -64,19 +67,56 @@ describe('RESTful tests', () => {
             },
         });
     const onlyFindRESTful = new RESTful('/onlyFind', table).find('default');
+    const errorRESTful = new RESTful('/errors', {
+        id_name: 'id',
+        count() {
+            throw new Error('Error');
+        },
+        find() {
+            throw new Error('Error');
+        },
+        findOne() {
+            throw new Error('Error');
+        },
+        create() {
+            throw new Error('Error');
+        },
+        update() {
+            throw new Error('Error');
+        },
+        delete() {
+            throw new Error('Error');
+        },
+    })
+        .find('default')
+        .findOne('default')
+        .create('default')
+        .update('default')
+        .delete('default')
+        .count('default');
+    const customRESTful = new RESTful('/custom')
+    .find((_req, res)=> res.sendStatus(200))
+    .findOne((_req, res)=> res.sendStatus(200))
+    .count((_req, res)=> res.sendStatus(200))
+    .create((_req, res)=> res.sendStatus(200))
+    .update((_req, res)=> res.sendStatus(200))
+    .delete((_req, res)=> res.sendStatus(200));
+
+
     const tokenCanModify = simpleToken.sign({ modify: true });
     const tokenCantModify = simpleToken.sign({});
     const app = express();
     app.use(express.json());
     app.use('/', defaultRESTful.router);
     app.use('/resources', onlyFindRESTful.router);
-    app.use((err: any, req: any, res: express.Response, next: NextFunction) => {
+    app.use('/resources', errorRESTful.router);
+    app.use('/resources', customRESTful.router);
+
+
+    app.use((err: any, __req: any, res: express.Response, next: NextFunction) => {
         if (err.statusCode <= 500) {
             res.sendStatus(err.statusCode);
         } else {
-            console.log(err);
-            console.log(req);
-            console.log(req.headers);
             next(err);
         }
     });
@@ -93,7 +133,7 @@ describe('RESTful tests', () => {
 
         await request(app)
             .get(
-                '/default/265?category_inner=this.category:categories.id&_fields=this.*,categories.name%20AS%20category_name'
+                '/default/265?categories_inner=this.category:categories.id,name:category_name'
             )
             .expect(200);
         expect(mockQuery.mock.calls[1][0]).toMatchSnapshot();
@@ -151,5 +191,47 @@ describe('RESTful tests', () => {
         await request(app)
             .delete('/resources/onlyFind/265')
             .expect(404);
+    });
+
+    test('OnlyFind test', async () => {
+        await request(app)
+            .get('/resources/errors')
+            .expect(500);
+        await request(app)
+            .get('/resources/errors/265')
+            .expect(500);
+        await request(app)
+            .post('/resources/errors')
+            .expect(500);
+        await request(app)
+            .put('/resources/errors/265')
+            .expect(500);
+        await request(app)
+            .delete('/resources/errors/265')
+            .expect(500);
+        await request(app)
+            .get('/resources/errors/count')
+            .expect(500);
+    });
+
+    test('Custom test', async () => {
+        await request(app)
+            .get('/resources/custom')
+            .expect(200);
+        await request(app)
+            .get('/resources/custom/265')
+            .expect(200);
+        await request(app)
+            .post('/resources/custom')
+            .expect(200);
+        await request(app)
+            .put('/resources/custom/265')
+            .expect(200);
+        await request(app)
+            .delete('/resources/custom/265')
+            .expect(200);
+        await request(app)
+            .get('/resources/custom/count')
+            .expect(200);
     });
 });
