@@ -34,7 +34,7 @@ export class Column {
 
     constructor(name: string, definition: ColumnDefinition) {
         this._name = name;
-        this._definition = definition || {};
+        this._definition = definition;
 
         this.toString = this.toString.bind(this);
         this.modify = this.modify.bind(this);

@@ -2,49 +2,24 @@ import CRUD from '../crud.interface';
 import Column from './column';
 import Connection from './connection';
 import { Constraint } from './constraint';
-
-export type Value = string | number | null | boolean;
+import { PureContext, Value } from './pure.context';
+import QueryContext from './query.context';
 
 interface WhereContext {
     [filter: string]: Value | Value[];
 }
 
-interface JoinContext {
-    [join: string]: string;
-}
 
 export class Table implements CRUD {
-    /* 
-        Where patterns
-    */
-    private RE_in = new RegExp(/^\S+_in$/); // IN <val1>,<val2>,<val3>,....,<valN>
-    private RE_nin = new RegExp(/^\S+_nin$/); // NOT IN <val1>,<val2>,<val3>,....,<valN>
-    private RE_n = new RegExp(/^\S+_n$/); // <> <value>
-    private RE_ls = new RegExp(/^\S+_ls$/); // < <value>
-    private RE_lseq = new RegExp(/^\S+_lseq$/); // <= <value>
-    private RE_gt = new RegExp(/^\S+_gt$/); // > <value>
-    private RE_gteq = new RegExp(/^\S+_gteq$/); // >= <value>
-    private RE_btw = new RegExp(/^\S+_btw$/); // BETWEEN <value1>,<value2>
-    private RE_like = new RegExp(/^\S+_like$/); // LIKE <value>
-
-    /* 
-        populate relation pattern 
-        <table_name>_<'inner' | 'left' | 'right' | 'full'>=<field>:<field> 
-    */
-    private RE_join = new RegExp(
-        /^(\S+_inner)|(\S+_left)|(\S+_right)|(\S+_full)$/
-    );
-
     private _con: Connection;
     private _name: string;
     private _id_name?: string;
+    private _tablesRelated: string[] = [];
 
     public get id_name() {
-        if (this._id_name) {
-            return this._id_name;
-        } else {
-            throw new Error('id_name no defined');
-        }
+        if (this._id_name) return this._id_name;
+
+        throw new Error('id_name no defined');
     }
 
     /**
@@ -81,10 +56,17 @@ export class Table implements CRUD {
         return this._con.getDateFormat(date);
     }
 
-    constructor(con: Connection, name: string, id_name?: string) {
+    constructor(
+        con: Connection,
+        name: string,
+        config?: { id_name?: string; tablesRelated?: string[] }
+    ) {
         this._con = con;
         this._name = name;
-        this._id_name = id_name;
+        if (config) {
+            this._id_name = config.id_name;
+            this._tablesRelated = config.tablesRelated || [];
+        }
     }
 
     /**
@@ -189,276 +171,36 @@ export class Table implements CRUD {
         );
     }
 
+    private getSelectQuery(ctx: PureContext) {
+        let queryContext = new QueryContext(this._tablesRelated).setPureContext(
+            ctx
+        );
+        let query = `SELECT ${queryContext.getSelectedFields()} FROM ${
+            this._name
+        } this ${queryContext.getRelations()}`;
+        query = query.trim();
+        query += this.getWhere(queryContext);
+        query += ` ${queryContext.getOrderSentence()} ${queryContext.getLimitSentence()}`;
+        query = `${query.trim()};`;
+        return query;
+    }
+
     /**
      * @summary
      * Get an Array of rows with respect to ctx.
      *
-     * @param ctx
-     * Set the order of the array will get it
-     *  - Sorted ascending by the field_name
-     *  ```ts
-     *      _sort: `${field_name}:ASC`
-     *  ```
-     *  - Sorted descending by the field_name
-     *  ```ts
-     *      _sort: `${field_name}:DESC`
-     *  ```
-     *
-     * Set how many rows to get
-     * ```ts
-     *   _limit: number_of_rows
-     * ```
-     *
-     * Set the index who start to get it
-     * ```ts
-     *   // The index of the first element is 0, and the last is length - 1
-     *   _start: index
-     * ```
-     *
-     * Set wich fields will get it
-     * ```ts
-     *   _fields: `${field_1},${field_2},${field_3},${field_n}`
-     * ```
-     *
-     * Set filter values
-     *
-     *  - Rows with field_name equal to value
-     *  ```ts
-     *      [field_name]: value
-     *  ```
-     *
-     *  - Rows with field_name not equal to value
-     *  ```ts
-     *      [field_name + '_n']: value
-     *  ```
-     *
-     *  - Rows with field_name must be equal to val_1, val_2 or val_3
-     *  ```ts
-     *      [field_name + '_in']: `${val_1},${val_2},${val_3}`
-     *  ```
-     *
-     *  - Rows with field_name must not be equal to val_1, val_2 or val_3
-     *  ```ts
-     *      [field_name + '_nin']: `${val_1},${val_2},${val_3}`
-     *  ```
-     *
-     *  - Rows with field_name greater than value
-     *  ```ts
-     *      [field_name + '_gt']: value
-     *  ```
-     *
-     *  - Rows with field_name greater than or equal to value
-     *  ```ts
-     *      [field_name + '_gteq']: value
-     *  ```
-     *
-     *  - Rows with field_name less than value
-     *  ```ts
-     *      [field_name + '_ls']: value
-     *  ```
-     *
-     *  - Rows with field_name less than or equal to value
-     *  ```ts
-     *      [field_name + '_lseq']: value
-     *  ```
-     *
-     *  - Rows with field_name math with the pattern
-     *  ```ts
-     *      [field_name + '_like']: pattern
-     *  ```
-     *
-     *  - Rows with field_name is between value_1 and value_2
-     *  ```ts
-     *      [field_name + '_btw']:  `${value_1}:${value_2}`
-     *  ```
-     *
-     * Populate relation
-     *
-     * - Inner join table_name on field_1 = field_2
-     * ```ts
-     *      [table_name + '_inner']:  `${field_1}:${field_2}`
-     * ```
-     *
-     * - Left join table_name on field_1 = field_2
-     * ```ts
-     *      [table_name + '_left']:  `${field_1}:${field_2}`
-     * ```
-     *
-     * - Right join table_name on field_1 = field_2
-     * ```ts
-     *      [table_name + '_right']:  `${field_1}:${field_2}`
-     * ```
-     *
-     * - Full join table_name on field_1 = field_2
-     * ```ts
-     *      [table_name + '_full']:  `${field_1}:${field_2}`
-     * ```
-     *
-     * You can use 'this' to do a reference to this table example.
-     * ```ts
-     *      {
-     *          _fields: 'this.username,this.name,teams.name AS team_name'
-     *          teams_left: 'this.team:teams.id'
-     *      }
-     * ```
-     *
-     * @param fields (Optional)
-     * Set wich fields will get it, into a string array, example
-     *  ```ts
-     *    ['id','name','email']
-     *  ```
+     * @param ctx {@link PureContext}
      *
      * @returns Promise\<T\> T must be an Array
      */
-    public find<T = any[]>(
-        ctx: {
-            [filterOrJoin: string]: Value | Value[] | string | undefined;
-            _sort?: string;
-            _limit?: number;
-            _start?: number;
-            _fields?: string;
-        },
-        fields: string[] = ['*']
-    ) {
-        if (ctx._fields) {
-            fields = ctx._fields.split(',');
-        }
-
-        let query =
-            ' SELECT ' + fields.join(', ') + ' FROM ' + this._name + ' this ';
-        let joins = this.getRelationTables(ctx as JoinContext);
-
-        if (joins.length > 0) {
-            query += joins
-                .map(join => {
-                    return (
-                        ' ' +
-                        join.type +
-                        ' JOIN ' +
-                        join.table +
-                        ' ON ' +
-                        join.relation[0] +
-                        '=' +
-                        join.relation[1]
-                    );
-                })
-                .join(' ');
-        }
-        query += this.getWhere(ctx as WhereContext);
-
-        if (ctx._sort !== undefined) {
-            let auxSort = ctx._sort.split(':');
-            query +=
-                ' ORDER BY ' +
-                auxSort[0] +
-                ' ' +
-                (auxSort.length === 2 ? auxSort[1] : ' ASC ');
-        }
-
-        if (ctx._limit !== undefined || ctx._start !== undefined) {
-            query +=
-                ' LIMIT ' +
-                (ctx._start ? ctx._start + ', ' : '') +
-                (ctx._limit ? ctx._limit : '18446744073709551615') +
-                ' ';
-        }
-
-        query += '; ';
-
-        return this._con.query<T>(query);
+    public find<T = any[]>(ctx: PureContext) {
+        return this._con.query<T>(this.getSelectQuery(ctx));
     }
 
     /**
      * @summary
      * Get the first row who respect to ctx.
-     * @param ctx
-     * Set filter values
-     *
-     * - Rows with field_name equal to value
-     * ```ts
-     *      [field_name]: value
-     * ```
-     *
-     * - Rows with field_name not equal to value
-     * ```ts
-     *      [field_name + '_n']: value
-     * ```
-     *
-     * - Rows with field_name must be equal to val_1, val_2 or val_3
-     * ```ts
-     *      [field_name + '_in']: `${val_1},${val_2},${val_3}`
-     * ```
-     *
-     * - Rows with field_name must not be equal to val_1, val_2 or val_3
-     * ```ts
-     *      [field_name + '_nin']: `${val_1},${val_2},${val_3}`
-     * ```
-     *
-     * - Rows with field_name greater than value
-     * ```ts
-     *      [field_name + '_gt']: value
-     * ```
-     *
-     * - Rows with field_name greater than or equal to value
-     * ```ts
-     *      [field_name + '_gteq']: value
-     * ```
-     *
-     * - Rows with field_name less than value
-     * ```ts
-     *      [field_name + '_ls']: value
-     * ```
-     *
-     * - Rows with field_name less than or equal to value
-     * ```ts
-     *      [field_name + '_lseq']: value
-     * ```
-     *
-     * - Rows with field_name math with the pattern
-     * ```ts
-     *      [field_name + '_like']: pattern
-     * ```
-     *
-     * - Rows with field_name is between value_1 and value_2
-     * ```ts
-     *      [field_name + '_btw']:  `${value_1}:${value_2}`
-     * ```
-     *
-     * Populate relation
-     *
-     * - Inner join table_name on field_1 = field_2
-     * ```ts
-     *      [table_name + '_inner']:  `${field_1}:${field_2}`
-     * ```
-     *
-     * - Left join table_name on field_1 = field_2
-     * ```ts
-     *      [table_name + '_left']:  `${field_1}:${field_2}`
-     * ```
-     *
-     * - Right join table_name on field_1 = field_2
-     * ```ts
-     *      [table_name + '_right']:  `${field_1}:${field_2}`
-     * ```
-     *
-     * - Full join table_name on field_1 = field_2
-     * ```ts
-     *      [table_name + '_full']:  `${field_1}:${field_2}`
-     * ```
-     *
-     * You can use 'this' to do a reference to this table example.
-     * ```ts
-     *      {
-     *          _fields: 'this.username,this.name,teams.name AS team_name'
-     *          teams_left: 'this.team:teams.id'
-     *      }
-     * ```
-     *
-     * @param fields (Optional)
-     * - Set wich fields will get it, into a string array, example
-     * ```
-     *      ['id','name','email']
-     * ```
+     * @param ctx {@link PureContext}
      * @returns
      * Promise\<T\> A single object with T type,
      * if not found rejects
@@ -469,122 +211,30 @@ export class Table implements CRUD {
      *  }
      * ```
      */
-    public findOne(
-        ctx: {
-            [filterOrJoin: string]: Value | Value[] | string | undefined;
-            _fields?: string;
-        },
-        fields: string[] = ['*']
-    ) {
-        if (ctx._fields) {
-            fields = ctx._fields.split(',');
-        }
-
-        let query = ' SELECT ' + fields.join(',') + ' ';
-        query += ' FROM ' + this._name + ' this ';
-
-        let joins = this.getRelationTables(ctx as JoinContext);
-        if (joins.length > 0) {
-            query += joins
-                .map(join => {
-                    return (
-                        ' ' +
-                        join.type +
-                        ' JOIN ' +
-                        join.table +
-                        ' ON ' +
-                        join.relation[0] +
-                        '=' +
-                        join.relation[1]
-                    );
-                })
-                .join(' ');
-        }
-
-        query += this.getWhere(ctx as WhereContext);
-
-        return new Promise<any>((resolve, reject) => {
-            this._con
-                .query<any[]>(query)
-                .then(qRes => {
-                    if (qRes.length > 0) {
-                        resolve(qRes[0]);
-                    } else {
-                        reject({ code: 404, message: 'Not Found' });
-                    }
-                })
-                .catch(err => {
-                    reject(err);
-                });
-        });
+    public async findOne(ctx: PureContext) {
+        let query = this.getSelectQuery(ctx);
+        let qRes = await this._con.query<any[]>(query);
+        if (qRes.length) return qRes[0];
+        throw { code: 404, message: 'Not Found' };
     }
 
     /**
      * @summary
      * Count rows who respect to where_ctx
-     * @param where_ctx
-     * Set filter values
-     *
-     *  - Rows with field_name equal to value
-     *  ```ts
-     *      [field_name]: value
-     *  ```
-     *
-     *  - Rows with field_name not equal to value
-     *  ```ts
-     *      [field_name + '_n']: value
-     *  ```
-     *
-     *  - Rows with field_name must be equal to val_1, val_2 or val_3
-     *  ```ts
-     *      [field_name + '_in']: `${val_1},${val_2},${val_3}`
-     *  ```
-     *
-     *  - Rows with field_name must not be equal to val_1, val_2 or val_3
-     *  ```ts
-     *      [field_name + '_nin']: `${val_1},${val_2},${val_3}`
-     *  ```
-     *
-     *  - Rows with field_name greater than value
-     *  ```ts
-     *      [field_name + '_gt']: value
-     *  ```
-     *
-     *  - Rows with field_name greater than or equal to value
-     *  ```ts
-     *      [field_name + '_gteq']: value
-     *  ```
-     *
-     *  - Rows with field_name less than value
-     *  ```ts
-     *      [field_name + '_ls']: value
-     *  ```
-     *
-     *  - Rows with field_name less than or equal to value
-     *  ```ts
-     *      [field_name + '_lseq']: value
-     *  ```
-     *
-     *  - Rows with field_name math with the pattern
-     *  ```ts
-     *      [field_name + '_like']: pattern
-     *  ```
-     *
-     *  - Rows with field_name is between value_1 and value_2
-     *  ```ts
-     *      [field_name + '_btw']:  `${value_1}:${value_2}`
-     *  ```
-     *
+     * @param ctx {@link PureContext}
      * @returns Promise
      */
-    public async count(where_ctx: WhereContext = {}) {
-        let query =
-            ' SELECT COUNT(*) FROM ' +
-            this._name +
-            ' ' +
-            this.getWhere(where_ctx);
+    public async count(ctx: WhereContext = {}) {
+        let queryContext = new QueryContext(this._tablesRelated).setPureContext(
+            ctx
+        );
+        let query = `SELECT COUNT(*) as count FROM ${
+            this._name
+        } this ${queryContext.getRelations()}`;
+        query = query.trim();
+        query += this.getWhere(queryContext);
         const queryRes = await this._con.query(query);
-        return queryRes[0]['COUNT(*)'];
+        return queryRes[0].count;
     }
 
     /**
@@ -634,11 +284,7 @@ export class Table implements CRUD {
     ) {
         let template = fields.map(field => '{{' + field + '}}').join(', ');
         let query =
-            ' INSERT INTO ' +
-            this._name +
-            ' (' +
-            fields.join(',') +
-            ') VALUES ';
+            'INSERT INTO ' + this._name + ' (' + fields.join(',') + ') VALUES ';
         if (values instanceof Array) {
             query +=
                 values
@@ -685,59 +331,7 @@ export class Table implements CRUD {
      * @param values
      * Is a object with properties that will be udated.
      *
-     * @param where_ctx
-     * Set filter values
-     *
-     *  - Rows with field_name equal to value
-     *  ```ts
-     *      [field_name]: value
-     *  ```
-     *
-     *  - Rows with field_name not equal to value
-     *  ```ts
-     *      [field_name + '_n']: value
-     *  ```
-     *
-     *  - Rows with field_name must be equal to val_1, val_2 or val_3
-     *  ```ts
-     *      [field_name + '_in']: `${val_1},${val_2},${val_3}`
-     *  ```
-     *
-     *  - Rows with field_name must not be equal to val_1, val_2 or val_3
-     *  ```ts
-     *      [field_name + '_nin']: `${val_1},${val_2},${val_3}`
-     *  ```
-     *
-     *  - Rows with field_name greater than value
-     *  ```ts
-     *      [field_name + '_gt']: value
-     *  ```
-     *
-     *  - Rows with field_name greater than or equal to value
-     *  ```ts
-     *      [field_name + '_gteq']: value
-     *  ```
-     *
-     *  - Rows with field_name less than value
-     *  ```ts
-     *      [field_name + '_ls']: value
-     *  ```
-     *
-     *  - Rows with field_name less than or equal to value
-     *  ```ts
-     *      [field_name + '_lseq']: value
-     *  ```
-     *
-     *  - Rows with field_name math with the pattern
-     *  ```ts
-     *      [field_name + '_like']: pattern
-     *  ```
-     *
-     *  - Rows with field_name is between value_1 and value_2
-     *  ```ts
-     *      [field_name + '_btw']:  `${value_1}:${value_2}`
-     *  ```
-     *
+     * @param where_ctx {@link PureContext}
      * @param fields (Optional)
      * Indicate wich fields will set it, into a string array, example
      *  ```
@@ -752,182 +346,37 @@ export class Table implements CRUD {
             prop => values[prop] !== undefined
         )
     ) {
+        let queryContext = new QueryContext(this._tablesRelated).setPureContext(
+            where_ctx
+        );
         let query =
-            ' UPDATE ' +
+            'UPDATE ' +
             this._name +
             ' SET ' +
             fields.map(field => field + '={{' + field + '}}').join(', ') +
             ' ' +
-            this.getWhere(where_ctx);
+            this.getWhere(queryContext);
         return this._con.query(this._con.secureQuery(query, values));
     }
 
     /**
      * @summary
      * Delete rows who respect to where_ctx
-     * @param where_ctx
-     * Set filter values
-     *
-     *  - Rows with field_name equal to value
-     *  ```ts
-     *      [field_name]: value
-     *  ```
-     *
-     *  - Rows with field_name not equal to value
-     *  ```ts
-     *      [field_name + '_n']: value
-     *  ```
-     *
-     *  - Rows with field_name must be equal to val_1, val_2 or val_3
-     *  ```ts
-     *      [field_name + '_in']: `${val_1},${val_2},${val_3}`
-     *  ```
-     *
-     *  - Rows with field_name must not be equal to val_1, val_2 or val_3
-     *  ```ts
-     *      [field_name + '_nin']: `${val_1},${val_2},${val_3}`
-     *  ```
-     *
-     *  - Rows with field_name greater than value
-     *  ```ts
-     *      [field_name + '_gt']: value
-     *  ```
-     *
-     *  - Rows with field_name greater than or equal to value
-     *  ```ts
-     *      [field_name + '_gteq']: value
-     *  ```
-     *
-     *  - Rows with field_name less than value
-     *  ```ts
-     *      [field_name + '_ls']: value
-     *  ```
-     *
-     *  - Rows with field_name less than or equal to value
-     *  ```ts
-     *      [field_name + '_lseq']: value
-     *  ```
-     *
-     *  - Rows with field_name math with the pattern
-     *  ```ts
-     *      [field_name + '_like']: pattern
-     *  ```
-     *
-     *  - Rows with field_name is between value_1 and value_2
-     *  ```ts
-     *      [field_name + '_btw']:  `${value_1}:${value_2}`
-     *  ```
-     *
+     * @param where_ctx {@link PureContext}
      * @returns Promise
      */
     public delete(where_ctx: WhereContext) {
         let query =
-            ' DELETE FROM ' + this._name + ' ' + this.getWhere(where_ctx);
+            'DELETE FROM ' +
+            this._name +
+            ' ' +
+            this.getWhere(new QueryContext().setPureContext(where_ctx));
         return this._con.query(query);
     }
 
-    private getWhere(ctx: { [field: string]: Value | Value[] }) {
-        let propsWhere = Object.getOwnPropertyNames(ctx);
-        propsWhere = propsWhere.filter(prop => {
-            return (
-                prop !== '_sort' &&
-                prop !== '_limit' &&
-                prop !== '_start' &&
-                prop !== '_fields' &&
-                !this.RE_join.test(prop)
-            );
-        });
-
-        propsWhere = propsWhere.map(prop => {
-            let querySegment = '';
-            const contextValue = ctx[prop];
-            if (contextValue instanceof Array) {
-                querySegment = `(${contextValue
-                    .map(value => this.getWhereSegment(prop, value))
-                    .join(' OR ')})`;
-            } else {
-                querySegment = this.getWhereSegment(prop, contextValue);
-            }
-            return querySegment;
-        });
-
-        if (propsWhere.length > 0) {
-            return ' WHERE ' + propsWhere.join(' AND ') + ' ';
-        } else {
-            return '';
-        }
-    }
-
-    private getWhereSegment(prop: string, value: Value) {
-        let querySegment = '';
-        if (this.RE_n.test(prop)) {
-            querySegment = `${prop.replace('_n', '')} <> ${this.escape(value)}`;
-        } else if (this.RE_gt.test(prop)) {
-            querySegment = `${prop.replace('_gt', '')} > ${this.escape(value)}`;
-        } else if (this.RE_gteq.test(prop)) {
-            querySegment = `${prop.replace('_gteq', '')} >= ${this.escape(
-                value
-            )}`;
-        } else if (this.RE_ls.test(prop)) {
-            querySegment = `${prop.replace('_ls', '')} < ${this.escape(value)}`;
-        } else if (this.RE_lseq.test(prop)) {
-            querySegment = `${prop.replace('_lseq', '')} <= ${this.escape(
-                value
-            )}`;
-        } else if (this.RE_like.test(prop)) {
-            querySegment = `${prop.replace('_like', '')} LIKE ${this.escape(
-                value
-            )}`;
-        } else if (this.RE_nin.test(prop)) {
-            querySegment =
-                prop.replace('_nin', '') +
-                ' NOT IN (' +
-                (value as string)
-                    .split(',')
-                    .map((val: any) => this.escape(val))
-                    .join(',') +
-                ')';
-        } else if (this.RE_in.test(prop)) {
-            querySegment =
-                prop.replace('_in', '') +
-                ' IN (' +
-                (value as string)
-                    .split(',')
-                    .map((val: any) => this.escape(val))
-                    .join(',') +
-                ')';
-        } else if (this.RE_btw.test(prop)) {
-            let btwValues = (value as string).split(',');
-            querySegment =
-                prop.replace('_btw', '') +
-                ' BETWEEN ' +
-                this.escape(btwValues[0]) +
-                ' AND ' +
-                this.escape(btwValues[1]);
-        } else {
-            querySegment = `${prop} = ${this.escape(value)}`;
-        }
-
-        return querySegment;
-    }
-
-    private getRelationTables(ctx: JoinContext) {
-        return Object.getOwnPropertyNames(ctx)
-            .filter(prop => this.RE_join.test(prop))
-            .map(prop => {
-                let table = prop.split('_');
-                let type = table.splice(table.length - 1, 1)[0];
-                let relation = ctx[prop].split(':');
-                return {
-                    table: table.join('_'),
-                    type: type.toUpperCase(),
-                    relation,
-                };
-            });
-    }
-
-    public get escape() {
-        return this._con.escape;
+    private getWhere(queryContext: QueryContext) {
+        let filterSentences = queryContext.getFilterSentences();
+        return filterSentences ? ' WHERE ' + filterSentences : '';
     }
 }
 

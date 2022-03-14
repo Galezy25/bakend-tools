@@ -135,8 +135,11 @@ export class Connection {
      * @param name Name of the table to get
      * @returns Table object
      */
-    public table(name: string, id_name?: string) {
-        return new Table(this, name, id_name);
+    public table(
+        name: string,
+        config?: { id_name?: string; tablesRelated?: string[] }
+    ) {
+        return new Table(this, name, config);
     }
 
     /**

@@ -7,15 +7,23 @@ import {
 } from '../../src/easysql/constraint';
 
 const mockQuery = jest.fn(
-    (__query, callback: (err: any, results: any, fields: any) => void) => {
-        callback(undefined, [], []);
+    (
+        query: string,
+        callback: (err: any, results: any, fields: any) => void
+    ) => {
+        if (query.includes('count')) {
+            callback(undefined, [{ count: 25 }], []);
+        } else {
+            callback(undefined, [], []);
+        }
     }
 );
+const mockEnd = jest.fn();
 jest.mock('mysql', () => {
     return {
         createPool: jest.fn(_config => ({
             query: mockQuery,
-            end: jest.fn(),
+            end: mockEnd,
         })),
         escape: jest.fn((value: any) => {
             return typeof value === 'string' ? `'${value}'` : value + '';
@@ -30,7 +38,9 @@ describe('Connection tests', () => {
     });
 
     const tableTestsName = 'table_tests';
-    const table = connection.table(tableTestsName);
+    const table = connection.table(tableTestsName, {
+        tablesRelated: [tableTestsName],
+    });
 
     beforeEach(() => {
         mockQuery.mockClear();
@@ -99,6 +109,21 @@ describe('Connection tests', () => {
         expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
     });
 
+    test('CURRENT_TIMESTAMP', () => {
+        expect(table.CURRENT_TIMESTAMP).toMatch(
+            /\d{4}-\d{2}-\d{2} \d{1,2}:\d{1,2}:\d{1,2}/
+        );
+    });
+
+    test('getDateFormat get', () => {
+        let date1 = new Date('2025/01/01 00:00:00');
+        let date2 = new Date('2025/12/25 00:00:00');
+        expect(table.getDateTimeFormat(date1)).toBe('2025-01-01 0:0:0');
+        expect(table.getDateTimeFormat(date2)).toBe('2025-12-25 0:0:0');
+        expect(table.getDateFormat(date1)).toBe('2025/01/01');
+        expect(table.getDateFormat(date2)).toBe('2025/12/25');
+    });
+
     test('Find, Find One of a empty table', async () => {
         await table.find({});
         expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
@@ -146,16 +171,14 @@ describe('Connection tests', () => {
     });
 
     test('Find rows', async () => {
-        await table.find(
-            {
-                _sort: 'id:DESC',
-                _limit: 25,
-                _start: 25,
-                leader_gteq: 8,
-                [tableTestsName + '_inner']: tableTestsName + '.id:this.leader',
-            },
-            ['this.*', tableTestsName + '.name AS leader_name']
-        );
+        await table.find({
+            _sort: 'id:DESC',
+            _limit: 25,
+            _start: 25,
+            leader_gteq: 8,
+            [tableTestsName + '_inner']:
+                tableTestsName + '.id:this.leader,name:leader_name',
+        });
         expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
 
         await table.find({
@@ -185,5 +208,40 @@ describe('Connection tests', () => {
     test('Delete row', async () => {
         await table.delete({ id: 100 });
         expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
+    });
+
+    test('Count', async () => {
+        await table.count();
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
+    });
+
+    test('changeColumn', async () => {
+        await table.changeColumn(
+            'name',
+            new Column('fullname', {
+                dataType: ['VARCHAR', 50],
+            })
+        );
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
+    });
+
+    test('renameColumn', async () => {
+        await table.renameColumn('name', 'fullname');
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
+    });
+
+    test('addConstraint', async () => {
+        await table.addConstraint(new PrimaryKey('id', 'pk_id'));
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
+    });
+
+    test('dropConstraint', async () => {
+        await table.dropConstraint('pk_id');
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
+    });
+
+    test('Connection end', () => {
+        connection.end();
+        expect(mockEnd).toBeCalled();
     });
 });

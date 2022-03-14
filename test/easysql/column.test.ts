@@ -19,6 +19,9 @@ describe('EasySql Column test', () => {
         });
 
         expect(columnInt.toString()).toBe('test_int INT');
+        expect(columnInt.definition).toMatchObject({
+            dataType: 'INT'
+        });
         expect(columnVarchar.toString()).toBe('test_varchar VARCHAR(50)');
         expect(columnDatetime.toString()).toBe('test_datetime DATETIME');
         expect(columnEnum.toString()).toBe(
@@ -102,5 +105,27 @@ describe('EasySql Column test', () => {
         expect(dateColumn.toString()).toBe(
             'begin DATE DEFAULT CURRENT_TIMESTAMP FIRST'
         );
+
+        dateColumn.setAfter('fullname')
+
+        expect(dateColumn.toString()).toBe(
+            'begin DATE DEFAULT CURRENT_TIMESTAMP AFTER fullname'
+        );
     });
+
+    test('Change column', ()=> {
+        const dateColumn = new Column('begin', {
+            dataType: 'DATE',
+            default: 'CURRENT_TIMESTAMP',
+        })
+
+        dateColumn.change('end',{
+            dataType: 'DATETIME'
+        })
+
+        expect(dateColumn.toString()).toBe(
+            'end DATETIME DEFAULT CURRENT_TIMESTAMP'
+        );
+    })
+
 });
