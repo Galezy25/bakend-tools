@@ -28,33 +28,15 @@ export class AdminFile {
      * @param dir Directory where will be write the file
      * @param namedWithExt Name with extension of the file
      * @param data Content of the file
-     * @param callback (optional)
      * @returns Promise that returns relativePath
      */
-    public writeFile(
-        dir: string,
-        namedWithExt: string,
-        data: any,
-        callback?: (
-            error?: NodeJS.ErrnoException,
-            relativePath?: string
-        ) => void
-    ) {
-        return new Promise<string>((resolve, reject) => {
-            let fullDir = path.resolve(this._rootPath, dir);
-            this.makeDir(fullDir);
-            let fullPath = path.resolve(fullDir, namedWithExt);
-            let relativePath = path.relative(this._rootPath, fullPath);
-            fs.writeFile(fullPath, data, function(err) {
-                if (err) {
-                    if (callback) callback(err);
-                    else reject(err);
-                } else {
-                    if (callback) callback(undefined, relativePath);
-                    else resolve(relativePath);
-                }
-            });
-        });
+    public async writeFile(dir: string, namedWithExt: string, data: any) {
+        let fullDir = path.resolve(this._rootPath, dir);
+        this.makeDir(fullDir);
+        let fullPath = path.resolve(fullDir, namedWithExt);
+        let relativePath = path.relative(this._rootPath, fullPath);
+        fs.writeFileSync(fullPath, data);
+        return relativePath;
     }
 
     /**
@@ -62,168 +44,83 @@ export class AdminFile {
      * @param dir Directory where is the file to append data
      * @param namedWithExt Name with extension of the file
      * @param data Content to append in the file
-     * @param callback (optional)
      * @returns Promise that returns relativePath
      */
-    appendFile(
-        dir: string,
-        namedWithExt: string,
-        data: any,
-        callback?: (
-            error?: NodeJS.ErrnoException,
-            relativePath?: string
-        ) => void
-    ) {
-        return new Promise<string>((resolve, reject) => {
-            let fullDir = path.resolve(this._rootPath, dir);
-            this.makeDir(fullDir);
-            let fullPath = path.resolve(fullDir, namedWithExt);
-            let relativePath = path.relative(this._rootPath, fullPath);
-            fs.appendFile(fullPath, data, err => {
-                if (err) {
-                    if (callback) callback(err);
-                    else reject(err);
-                } else {
-                    if (callback) callback(undefined, relativePath);
-                    else resolve(relativePath);
-                }
-            });
-        });
+    async appendFile(dir: string, namedWithExt: string, data: any) {
+        let fullDir = path.resolve(this._rootPath, dir);
+        this.makeDir(fullDir);
+        let fullPath = path.resolve(fullDir, namedWithExt);
+        let relativePath = path.relative(this._rootPath, fullPath);
+        fs.appendFileSync(fullPath, data);
+        return relativePath;
     }
 
     /**
      *
      * @param dir Directory where find the file to read.
      * @param namedWithExt Name with extension of the file.
-     * @param callback (optional)
      * @returns Promise that resolve with a string of the content of the file.
      */
-    public readFile(
-        dir: string,
-        namedWithExt: string,
-        callback?: (error?: NodeJS.ErrnoException, data?: string) => void
-    ) {
-        return new Promise<string>((resolve, reject) => {
-            let afPath = this._rootPath;
-
-            let pathFile = path.resolve(afPath, dir, namedWithExt);
-            fs.readFile(pathFile, 'utf8', function(err, data) {
-                if (err) {
-                    if (callback) callback(err);
-                    else reject(err);
-                } else {
-                    if (callback) callback(undefined, data);
-                    else resolve(data);
-                }
-            });
-        });
+    public async readFile(dir: string, namedWithExt: string) {
+        let afPath = this._rootPath;
+        let pathFile = path.resolve(afPath, dir, namedWithExt);
+        let data = fs.readFileSync(pathFile, 'utf8');
+        return data;
     }
 
     /**
      *
      * @param dir Directory to search into
      * @param named Segment or name of the file without extension.
-     * @param callback (optional)
      * @returns Promise that resolves with the full path and the name with extension of the file.
      */
-    public searchFile(
-        dir: string,
-        named: string,
-        callback?: (
-            error?: NodeJS.ErrnoException,
-            absolutePath?: string,
-            namedWithExt?: string
-        ) => void
-    ) {
-        return new Promise<{
-            absolutePath: string;
-            namedWithExt: string;
-        }>((resolve, reject) => {
-            let afPath = this._rootPath;
-
-            let old_path = path.resolve(afPath, dir);
-            fs.readdir(old_path, function(err, files) {
-                if (err) {
-                    if (callback) return callback(err);
-                    else return reject(err);
-                }
-                let namedWithExt = '';
-                for (var i = 0; i < files.length && namedWithExt === ''; i++) {
-                    if (files[i].includes(named)) {
-                        namedWithExt = files[i];
-                    }
-                }
-                if (namedWithExt !== '') {
-                    let absolutePath = path.resolve(afPath, dir, namedWithExt);
-                    if (callback)
-                        callback(undefined, absolutePath, namedWithExt);
-                    else
-                        resolve({
-                            absolutePath,
-                            namedWithExt,
-                        });
-                } else {
-                    if (callback)
-                        callback(
-                            {
-                                name: 'NOT_FOUND',
-                                message: 'File not found or does not exist',
-                            },
-                            undefined,
-                            undefined
-                        );
-                    else
-                        reject({
-                            name: 'NOT_FOUND',
-                            message: 'File not found or does not exist',
-                        });
-                }
-            });
-        });
+    public async searchFile(dir: string, named: string) {
+        let afPath = this._rootPath;
+        let old_path = path.resolve(afPath, dir);
+        let files = fs.readdirSync(old_path);
+        let namedWithExt = files
+            .filter(filename => filename.includes(named))
+            .sort((a, b) => a.length - b.length)[0];
+        if (!namedWithExt) {
+            throw {
+                name: 'NOT_FOUND',
+                message: 'File not found or does not exist',
+            };
+        }
+        let absolutePath = path.resolve(afPath, dir, namedWithExt);
+        return {
+            absolutePath,
+            namedWithExt,
+        };
     }
 
     /**
      *
      * @param dir Directory of the file.
      * @param namedWithExt Name with extension of the file.
-     * @param callback (optional)
      * @returns Promise
      */
-    public eraseFile(
-        dir: string,
-        namedWithExt: string,
-        callback?: (error?: NodeJS.ErrnoException) => void
-    ) {
-        return new Promise<void>((resolve, reject) => {
-            let afPath = this._rootPath;
+    public async eraseFile(dir: string, namedWithExt: string) {
+        let afPath = this._rootPath;
 
-            let old_path = path.join(afPath, dir, namedWithExt);
-            fs.unlink(old_path, function(err) {
-                if (err) {
-                    if (callback) callback(err);
-                    else reject(err);
-                } else {
-                    if (callback) callback(undefined);
-                    else resolve();
-                }
-            });
-        });
+        let old_path = path.join(afPath, dir, namedWithExt);
+        fs.unlinkSync(old_path);
+        return
     }
 
     /**
      *
      * @param dir Directory to search into.
      * @param named Segment or name of the file without extension.
-     * @param callback (optional)
      */
     public async searchEraseFile(
         dir: string,
-        named: string,
-        callback?: (error?: NodeJS.ErrnoException) => void
+        named: string
     ) {
         try {
             const { namedWithExt } = await this.searchFile(dir, named);
-            await this.eraseFile(dir, namedWithExt, callback);
+            await this.eraseFile(dir, namedWithExt);
+            return
         } catch (err) {
             if ((err as any)?.name !== 'NOT_FOUND') throw err;
         }

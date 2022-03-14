@@ -1,23 +1,13 @@
-import express = require('express');
-import request = require('supertest');
+import express from 'express';
+import request from 'supertest';
+import path from 'path';
+
 
 import FileApi from '../src/file.api';
-/*
-jest.mock('fs', () => {
-    return {
-        writeFile: jest.fn(
-            (__fullPathFile: string, __data: any, callback: () => void) => {
-                callback();
-            }
-        ),
-        existsSync: jest.fn((__path: string) => true),
-    };
-});
-//*/
 describe('File api tests', () => {
     const app = express();
     const fileApi = new FileApi(
-        FileApi.path.resolve(__dirname, 'filestest'),
+        path.resolve(__dirname, 'filestest'),
         'key string'
     );
     app.use('/', fileApi.expressApp);
@@ -28,18 +18,8 @@ describe('File api tests', () => {
             throw err;
         }
     });
-    const fileName = 'test.txt';
     const nameOnDownload = 'name_to_download.txt';
-    const content = 'Content of the file';
-    let pathFile: string;
-
-    beforeAll(async () => {
-        pathFile = await fileApi.writeFile('', fileName, content);
-    });
-
-    afterAll(async () => {
-        await fileApi.eraseFile('', fileName);
-    });
+    const pathFile = 'test';
 
     test('Encode / decode', async () => {
         const encoded = fileApi.encode(pathFile, nameOnDownload);
@@ -48,12 +28,12 @@ describe('File api tests', () => {
         expect(name).toBe(nameOnDownload);
     });
 
-    test.skip('Download file', async () => {
+    test('Download file', async () => {
         const downloadRoute = fileApi.getDownloadRoute(
             pathFile,
             nameOnDownload
         );
-        const response = await request(app)
+        await request(app)
             .get(downloadRoute)
             .buffer()
             .parse((res, callback) => {
@@ -65,21 +45,16 @@ describe('File api tests', () => {
                 res.on('end', () => {
                     callback(null, Buffer.from(data, 'binary'));
                 });
-            });
-        expect((response.body as Buffer).toString()).toBe(content);
+            }).expect(404)
     });
-    //*/
-
-    test.skip('Try to download expired file token', async done => {
+    test('Try to download expired file token', async done => {
         const downloadRoute = fileApi.getDownloadRoute(
             pathFile,
             nameOnDownload,
             2
         );
-        console.log(downloadRoute);
-        await new Promise(r => {
-            setTimeout(r, 3500);
-        });
+        await new Promise((resolve)=> setTimeout(resolve,2000))
+        
         request(app)
             .get(downloadRoute)
             .expect(403)
