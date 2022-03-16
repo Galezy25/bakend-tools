@@ -13,6 +13,7 @@ export interface CRUD {
         context: { [key: string]: any },
         valuesToUpdate: any
     ) => Promise<any>;
+    replace: (valuesToReplace: any) => Promise<any>;
     delete: (context: { [key: string]: any }) => Promise<any>;
 }
 

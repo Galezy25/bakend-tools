@@ -40,7 +40,7 @@ describe('QueryContext', () => {
 
     test('Table related', () => {
         let ctxWithRelations = new QueryContext(['users']);
-        let ctxWithNoRelations = new QueryContext(undefined,undefined);
+        let ctxWithNoRelations = new QueryContext(undefined, undefined);
 
         expect(
             ctxWithRelations.populate(

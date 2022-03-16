@@ -82,10 +82,9 @@ export class AdminFile {
             .filter(filename => filename.includes(named))
             .sort((a, b) => a.length - b.length)[0];
         if (!namedWithExt) {
-            throw {
-                name: 'NOT_FOUND',
-                message: 'File not found or does not exist',
-            };
+            const error = new Error('File not found or does not exist');
+            error.name = 'NOT_FOUND';
+            throw error;
         }
         let absolutePath = path.resolve(afPath, dir, namedWithExt);
         return {
@@ -105,7 +104,7 @@ export class AdminFile {
 
         let old_path = path.join(afPath, dir, namedWithExt);
         fs.unlinkSync(old_path);
-        return
+        return;
     }
 
     /**
@@ -113,14 +112,11 @@ export class AdminFile {
      * @param dir Directory to search into.
      * @param named Segment or name of the file without extension.
      */
-    public async searchEraseFile(
-        dir: string,
-        named: string
-    ) {
+    public async searchEraseFile(dir: string, named: string) {
         try {
             const { namedWithExt } = await this.searchFile(dir, named);
             await this.eraseFile(dir, namedWithExt);
-            return
+            return;
         } catch (err) {
             if ((err as any)?.name !== 'NOT_FOUND') throw err;
         }

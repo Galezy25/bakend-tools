@@ -1,3 +1,5 @@
+import { ObjectSchema } from 'yup';
+
 import CRUD from '../crud.interface';
 import Column from './column';
 import Connection from './connection';
@@ -9,12 +11,34 @@ interface WhereContext {
     [filter: string]: Value | Value[];
 }
 
+export interface TableConfig {
+    /**
+     * Name of the primary key column
+     */
+    id_name?: string;
+    /**
+     * Table names that can be `JOIN`
+     */
+    tablesRelated?: string[];
+    /**
+     * Schema to validate a value object before
+     * have been inserted or replaced
+     */
+    createSchema?: ObjectSchema<any>;
+    /**
+     * Schema to validate a value object before
+     * have been update
+     */
+    updateSchema?: ObjectSchema<any>;
+}
 
 export class Table implements CRUD {
     private _con: Connection;
     private _name: string;
     private _id_name?: string;
     private _tablesRelated: string[] = [];
+    public readonly createSchema?: ObjectSchema<any>;
+    public readonly updateSchema?: ObjectSchema<any>;
 
     public get id_name() {
         if (this._id_name) return this._id_name;
@@ -56,16 +80,14 @@ export class Table implements CRUD {
         return this._con.getDateFormat(date);
     }
 
-    constructor(
-        con: Connection,
-        name: string,
-        config?: { id_name?: string; tablesRelated?: string[] }
-    ) {
+    constructor(con: Connection, name: string, config?: TableConfig) {
         this._con = con;
         this._name = name;
         if (config) {
             this._id_name = config.id_name;
             this._tablesRelated = config.tablesRelated || [];
+            this.createSchema = config.createSchema;
+            this.updateSchema = config.updateSchema;
         }
     }
 
@@ -215,14 +237,17 @@ export class Table implements CRUD {
         let query = this.getSelectQuery(ctx);
         let qRes = await this._con.query<any[]>(query);
         if (qRes.length) return qRes[0];
-        throw { code: 404, message: 'Not Found' };
+
+        const error = new Error('Not Found');
+        (error as any).code = 404;
+        throw error;
     }
 
     /**
      * @summary
      * Count rows who respect to where_ctx
      * @param ctx {@link PureContext}
-     * @returns Promise
+     * @returns Promise<number>
      */
     public async count(ctx: WhereContext = {}) {
         let queryContext = new QueryContext(this._tablesRelated).setPureContext(
@@ -233,7 +258,7 @@ export class Table implements CRUD {
         } this ${queryContext.getRelations()}`;
         query = query.trim();
         query += this.getWhere(queryContext);
-        const queryRes = await this._con.query(query);
+        const queryRes = await this._con.query<{ count: number }[]>(query);
         return queryRes[0].count;
     }
 
@@ -250,7 +275,7 @@ export class Table implements CRUD {
      *  ```
      *
      * @example
-     *  ```
+     *  ```ts
      *      const result = await products.create({
      *          name: 'Atari 2600',
      *          cost: 849.88,
@@ -259,8 +284,8 @@ export class Table implements CRUD {
      *
      *      // result.insertId is 265
      *  ```
-     *  Creates a row whith values
-     *  ```
+     *  Creates a row with values
+     *  ```ts
      *      {
      *          id: 265,
      *          name: 'Atari 2600',
@@ -274,7 +299,7 @@ export class Table implements CRUD {
      *  affectedRows: any
      * }\>
      */
-    public create(
+    public async create(
         values: { [field: string]: any } | { [field: string]: any }[],
         fields: string[] = Object.getOwnPropertyNames(
             values instanceof Array ? values[0] : values
@@ -282,21 +307,97 @@ export class Table implements CRUD {
             values instanceof Array ? true : values[prop] !== undefined
         )
     ) {
+        let toInsert: any[] = values instanceof Array ? values : [values];
+
+        if (this.createSchema) {
+            try {
+                toInsert = toInsert.map(value => {
+                    return this.createSchema!.validateSync(value);
+                });
+            } catch (err) {
+                (err as any).code = 400;
+                throw err;
+            }
+            const postSchemaFields = Object.getOwnPropertyNames(toInsert[0]);
+            fields = fields.filter(field => postSchemaFields.includes(field));
+        }
+
         let template = fields.map(field => '{{' + field + '}}').join(', ');
         let query =
             'INSERT INTO ' + this._name + ' (' + fields.join(',') + ') VALUES ';
-        if (values instanceof Array) {
-            query +=
-                values
-                    .map(
-                        value =>
-                            '(' + this._con.secureQuery(template, value) + ')'
-                    )
-                    .join(',') + ';';
-        } else {
-            query += '(' + this._con.secureQuery(template, values) + ');';
+
+        query +=
+            toInsert
+                .map(
+                    value => '(' + this._con.secureQuery(template, value) + ')'
+                )
+                .join(',') + ';';
+
+        return await this._con.query<{ insertId: any; affectedRows: any }>(
+            query
+        );
+    }
+
+    /**
+     * @summary
+     * Replace a rows into the table
+     *
+     * @param value
+     * Object with the new data to replace
+     * @param fields
+     * Indicate wich fields will set it, into a string array, example
+     *  ```
+     *    ['name','email']
+     *  ```
+     *
+     * @example
+     *  ```ts
+     *      const result = await products.replace({
+     *          id: 265
+     *          name: 'Atari 2600',
+     *          cost: 849.88,
+     *          taxes: 84.98
+     *      },['name','cost'])
+     *
+     *  ```ts
+     *  Replace a row with values
+     *  ```
+     *      {
+     *          id: 265,
+     *          name: 'Atari 2600',
+     *          cost: 849.88
+     *      }
+     *  ```
+     *
+     * @returns
+     * Promise\<void\>
+     */
+    public async replace(
+        values: { [field: string]: any },
+        fields: string[] = Object.getOwnPropertyNames(values)
+    ) {
+        if (this.createSchema) {
+            try {
+                values = this.createSchema.validateSync(values);
+            } catch (err) {
+                (err as any).code = 400;
+                throw err;
+            }
+            const postSchemaFields = Object.getOwnPropertyNames(values);
+            fields = fields.filter(field => postSchemaFields.includes(field));
         }
-        return this._con.query<{ insertId: any; affectedRows: any }>(query);
+
+        let template = fields.map(field => '{{' + field + '}}').join(', ');
+        let query =
+            'REPLACE INTO ' +
+            this._name +
+            ' (' +
+            fields.join(',') +
+            ') VALUES ';
+
+        query += '(' + this._con.secureQuery(template, values) + ');';
+
+        return await this._con.query(query);
     }
 
     /**
@@ -316,7 +417,7 @@ export class Table implements CRUD {
      *
      *  Modify:
      *  ```ts
-     *      products.update({ cost: 850 },{ id: 265 })
+     *      products.update({ id: 265 },{ cost: 850 })
      *  ```
      *
      *  The new row values will be:
@@ -339,13 +440,23 @@ export class Table implements CRUD {
      *  ```
      * @returns Promise
      */
-    public update(
+    public async update(
         where_ctx: WhereContext,
         values: { [field: string]: any },
         fields: string[] = Object.getOwnPropertyNames(values).filter(
             prop => values[prop] !== undefined
         )
     ) {
+        if (this.updateSchema) {
+            try {
+                values = this.updateSchema.validateSync(values);
+            } catch (err) {
+                (err as any).code = 400;
+                throw err;
+            }
+            const postSchemaFields = Object.getOwnPropertyNames(values);
+            fields = fields.filter(field => postSchemaFields.includes(field));
+        }
         let queryContext = new QueryContext(this._tablesRelated).setPureContext(
             where_ctx
         );
@@ -356,7 +467,9 @@ export class Table implements CRUD {
             fields.map(field => field + '={{' + field + '}}').join(', ') +
             ' ' +
             this.getWhere(queryContext);
-        return this._con.query(this._con.secureQuery(query, values));
+        return await this._con.query<{ affectedRows: any }>(
+            this._con.secureQuery(query, values)
+        );
     }
 
     /**

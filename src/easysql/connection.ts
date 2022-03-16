@@ -2,7 +2,7 @@ import mysql from 'mysql';
 import Column from './column';
 import { functionsRegexp } from './const.types';
 import { Constraint } from './constraint';
-import Table from './table';
+import Table, { TableConfig } from './table';
 
 export class Connection {
     private _cnn: mysql.Pool;
@@ -135,10 +135,7 @@ export class Connection {
      * @param name Name of the table to get
      * @returns Table object
      */
-    public table(
-        name: string,
-        config?: { id_name?: string; tablesRelated?: string[] }
-    ) {
+    public table(name: string, config?: TableConfig) {
         return new Table(this, name, config);
     }
 

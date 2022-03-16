@@ -35,6 +35,8 @@ exports[`Connection tests Find, Find One of a empty table 1`] = `"SELECT this.* 
 
 exports[`Connection tests Find, Find One of a empty table 2`] = `"SELECT this.* FROM table_tests this WHERE id = 1;"`;
 
+exports[`Connection tests Replace row 1`] = `"REPLACE INTO table_tests (id,name,email) VALUES (100, 'test_100_2', 'test_100_2@test.test');"`;
+
 exports[`Connection tests Update row 1`] = `"UPDATE table_tests SET name='test_100_2'  WHERE id = 100"`;
 
 exports[`Connection tests addConstraint 1`] = `"ALTER TABLE table_tests ADD CONSTRAINT pk_id PRIMARY KEY (id)"`;

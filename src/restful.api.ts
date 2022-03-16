@@ -40,6 +40,9 @@ export interface Matcher {
     _cookies?: any;
 }
 
+/**
+ * @deprecated
+ */
 export class RESTful {
     private _path: string;
     private _findHandlers: PayloadHandler[] = [];

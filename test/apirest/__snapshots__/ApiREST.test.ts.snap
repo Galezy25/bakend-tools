@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ApiREST tests Default create and payload security tests 1`] = `"INSERT INTO products (id,name,cost) VALUES (265, 'Atari 2600', 849.88);"`;
+
+exports[`ApiREST tests Default find, findOne, count tests 1`] = `"SELECT this.* FROM products this ORDER BY cost ASC LIMIT 250, 50;"`;
+
+exports[`ApiREST tests Default find, findOne, count tests 2`] = `"SELECT this.*, categories.name AS category_name FROM products this INNER JOIN categories ON this.category = categories.id WHERE id = '265';"`;
+
+exports[`ApiREST tests Default find, findOne, count tests 3`] = `"SELECT COUNT(*) as count FROM products this WHERE category IN ('1','2','3','4')"`;
+
+exports[`ApiREST tests Default modify tests 1`] = `"UPDATE products SET cost=850  WHERE id = '265'"`;
+
+exports[`ApiREST tests Default remove and headers tests 1`] = `"DELETE FROM products  WHERE id = '265'"`;
+
+exports[`ApiREST tests Default replace tests 1`] = `"REPLACE INTO products (id,name,cost) VALUES ('265', 'Atari 2600', 849.88);"`;

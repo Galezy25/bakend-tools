@@ -1,3 +1,5 @@
+import * as yup from 'yup';
+
 import Column from '../../src/easysql/column';
 import Connection from '../../src/easysql/connection';
 import {
@@ -40,6 +42,30 @@ describe('Connection tests', () => {
     const tableTestsName = 'table_tests';
     const table = connection.table(tableTestsName, {
         tablesRelated: [tableTestsName],
+        createSchema: yup
+            .object({
+                id: yup.number().optional(),
+                name: yup.string().required(),
+                email: yup
+                    .string()
+                    .email()
+                    .required(),
+                leader: yup
+                    .number()
+                    .nullable()
+                    .optional(),
+            })
+            .noUnknown(),
+        updateSchema: yup
+            .object({
+                name: yup.string(),
+                email: yup
+                    .string()
+                    .email()
+                    .optional(),
+                leader: yup.number().nullable(),
+            })
+            .noUnknown(),
     });
 
     beforeEach(() => {
@@ -151,10 +177,13 @@ describe('Connection tests', () => {
     });
 
     test('Create rows', async () => {
-        await table.create({
-            name: 'test_1',
-            email: 'test_1@test.test',
-        });
+        await table.create(
+            {
+                name: 'test_1',
+                email: 'test_1@test.test',
+            },
+            ['name', 'email', 'leader']
+        );
         expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
 
         let toRegister: any[] = [];
@@ -166,7 +195,7 @@ describe('Connection tests', () => {
                 otherValue: index,
             });
         }
-        await table.create(toRegister, ['name', 'email', 'leader']);
+        await table.create(toRegister);
         expect(mockQuery.mock.calls[1][0]).toMatchSnapshot();
     });
 
@@ -202,6 +231,15 @@ describe('Connection tests', () => {
 
     test('Update row', async () => {
         await table.update({ id: 100 }, { name: 'test_100_2' });
+        expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
+    });
+
+    test('Replace row', async () => {
+        await table.replace({
+            id: 100,
+            name: 'test_100_2',
+            email: 'test_100_2@test.test',
+        });
         expect(mockQuery.mock.calls[0][0]).toMatchSnapshot();
     });
 

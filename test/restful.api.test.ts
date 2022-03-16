@@ -84,6 +84,9 @@ describe('RESTful tests', () => {
         update() {
             throw new Error('Error');
         },
+        replace() {
+            throw new Error('Error');
+        },
         delete() {
             throw new Error('Error');
         },
@@ -95,13 +98,12 @@ describe('RESTful tests', () => {
         .delete('default')
         .count('default');
     const customRESTful = new RESTful('/custom')
-    .find((_req, res)=> res.sendStatus(200))
-    .findOne((_req, res)=> res.sendStatus(200))
-    .count((_req, res)=> res.sendStatus(200))
-    .create((_req, res)=> res.sendStatus(200))
-    .update((_req, res)=> res.sendStatus(200))
-    .delete((_req, res)=> res.sendStatus(200));
-
+        .find((_req, res) => res.sendStatus(200))
+        .findOne((_req, res) => res.sendStatus(200))
+        .count((_req, res) => res.sendStatus(200))
+        .create((_req, res) => res.sendStatus(200))
+        .update((_req, res) => res.sendStatus(200))
+        .delete((_req, res) => res.sendStatus(200));
 
     const tokenCanModify = simpleToken.sign({ modify: true });
     const tokenCantModify = simpleToken.sign({});
@@ -112,14 +114,15 @@ describe('RESTful tests', () => {
     app.use('/resources', errorRESTful.router);
     app.use('/resources', customRESTful.router);
 
-
-    app.use((err: any, __req: any, res: express.Response, next: NextFunction) => {
-        if (err.statusCode <= 500) {
-            res.sendStatus(err.statusCode);
-        } else {
-            next(err);
+    app.use(
+        (err: any, __req: any, res: express.Response, next: NextFunction) => {
+            if (err.statusCode <= 500) {
+                res.sendStatus(err.statusCode);
+            } else {
+                next(err);
+            }
         }
-    });
+    );
 
     beforeEach(() => {
         mockQuery.mockClear();

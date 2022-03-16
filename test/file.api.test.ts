@@ -2,7 +2,6 @@ import express from 'express';
 import request from 'supertest';
 import path from 'path';
 
-
 import FileApi from '../src/file.api';
 describe('File api tests', () => {
     const app = express();
@@ -45,7 +44,8 @@ describe('File api tests', () => {
                 res.on('end', () => {
                     callback(null, Buffer.from(data, 'binary'));
                 });
-            }).expect(404)
+            })
+            .expect(404);
     });
     test('Try to download expired file token', async done => {
         const downloadRoute = fileApi.getDownloadRoute(
@@ -53,8 +53,8 @@ describe('File api tests', () => {
             nameOnDownload,
             2
         );
-        await new Promise((resolve)=> setTimeout(resolve,2000))
-        
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         request(app)
             .get(downloadRoute)
             .expect(403)

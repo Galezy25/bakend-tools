@@ -105,9 +105,13 @@ describe('Adminfile test', () => {
 
     test('Erase and search ' + namedWithoutExt, async () => {
         const randomName = Date.now().toString(36);
-        expect(await adminFile.searchEraseFile(dir, namedWithoutExt)).resolves;
+        await expect(
+            adminFile.searchEraseFile(dir, namedWithoutExt)
+        ).resolves.toBeUndefined();
         expect(mockReaddirSync).toBeCalledTimes(1);
         expect(mockUnlinkSync).toBeCalledTimes(1);
-        expect(await adminFile.searchEraseFile(dir, randomName)).resolves;
+        await expect(
+            adminFile.searchEraseFile(dir, randomName)
+        ).resolves.toBeUndefined();
     });
 });

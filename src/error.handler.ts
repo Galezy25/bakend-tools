@@ -23,22 +23,9 @@ export class ErrorHandler {
      * ```
      */
     handler(err: any, req: Request, res: Response, _next: any) {
-        let toLog = false;
-        let code: number | null = null;
-        if (typeof err === 'number') code = err;
-        if (typeof err.code === 'number') code = err.code;
-        if (typeof err.status === 'number') code = err.status;
-        if (typeof err.statusCode === 'number') code = err.statusCode;
-
-        if (code) {
-            if (code >= 500) {
-                toLog = true;
-            }
-            res.sendStatus(code);
-        } else {
-            toLog = true;
-            res.sendStatus(500);
-        }
+        const errorToLog = new ErrorHTTP(err);
+        let toLog = errorToLog.statusCode >= 500;
+        res.status(errorToLog.statusCode).send(errorToLog.name);
         if (toLog) {
             this.appendError(err, req.originalUrl);
         }
@@ -102,19 +89,46 @@ export class ErrorHandler {
  * Create a http error with a status code.
  */
 export class ErrorHTTP extends Error {
-    statusCode: number = 500;
-    error: any;
+    statusCode: number;
+    [key: string]: any;
 
     constructor(
-        message: string,
-        error?: {
-            [index: string]: any;
+        message: string | Error | ErrorHTTP,
+        {
+            statusCode = 500,
+            name = 'Internal server error',
+            ...rest
+        }: {
             statusCode?: number;
-        }
+            name?: string;
+            [key: string]: any;
+        } = {}
     ) {
-        super(message);
-        if (error?.statusCode) this.statusCode = error.statusCode;
-        this.error = error;
+        if (typeof message === 'string') {
+            super(message);
+            this.name = name;
+        } else {
+            super('');
+            this.name = message.name;
+            this.message = message.message;
+            this.stack = message.stack;
+            for (let key of Object.getOwnPropertyNames(message)) {
+                this[key] = (message as any)[key];
+            }
+        }
+
+        if (typeof message !== 'string') {
+            this.statusCode =
+                (message as any).statusCode ||
+                Number((message as any).code) ||
+                statusCode;
+        } else {
+            this.statusCode = statusCode;
+        }
+
+        for (let key of Object.getOwnPropertyNames(rest)) {
+            this[key] = rest[key];
+        }
     }
 
     toString() {
